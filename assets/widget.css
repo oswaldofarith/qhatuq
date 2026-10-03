@@ -271,6 +271,8 @@ svg { width: 100%; height: 100%; display: block; }
 .time { font-size: 11px; color: var(--muted); margin: 3px 6px 0; }
 
 .dots { display: inline-flex; gap: 4px; padding: 4px 0; }
+.typing .bubble { display: inline-flex; align-items: center; gap: 10px; }
+.typing .wait { font-size: 13px; color: var(--muted); animation: rise .28s var(--ease) both; }
 .dots i {
 	width: 7px;
 	height: 7px;

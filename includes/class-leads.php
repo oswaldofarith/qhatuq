@@ -29,6 +29,7 @@ class Qhatuq_Leads {
 			'empresa'   => array( 'company', 200 ),
 			'necesidad' => array( 'need', 2000 ),
 			'resumen'   => array( 'summary', 2000 ),
+			'fuera_de_catalogo' => array( 'off_catalog', 1000 ),
 		);
 		foreach ( $map as $key => list( $col, $max ) ) {
 			$val = isset( $in[ $key ] ) && is_scalar( $in[ $key ] ) ? trim( sanitize_textarea_field( (string) $in[ $key ] ) ) : '';
@@ -164,6 +165,9 @@ class Qhatuq_Leads {
 			'Temperatura' => self::TEMPERATURES[ $lead['temperature'] ] ?? $lead['temperature'],
 			'Resumen'     => $lead['summary'],
 		);
+		if ( ! empty( $lead['off_catalog'] ) ) {
+			$rows['Fuera de catálogo'] = $lead['off_catalog'];
+		}
 		$out = array();
 		foreach ( $rows as $label => $value ) {
 			$out[] = $label . ': ' . ( '' !== (string) $value ? $value : '—' );

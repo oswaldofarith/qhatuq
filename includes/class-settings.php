@@ -23,6 +23,7 @@ class Qhatuq_Settings {
 			'claude_api_key'       => '',
 			'claude_model'         => 'claude-opus-5-5',
 			'claude_effort'        => 'low',
+			'web_search'           => 1,
 			'gemini_api_key'       => '',
 			'gemini_model'         => 'gemini-3-flash-preview',
 
@@ -116,6 +117,7 @@ class Qhatuq_Settings {
 		$out      = array();
 
 		$out['enabled']  = empty( $input['enabled'] ) ? 0 : 1;
+		$out['web_search'] = empty( $input['web_search'] ) ? 0 : 1;
 		$out['provider'] = in_array( $input['provider'] ?? '', array( 'claude', 'gemini' ), true ) ? $input['provider'] : 'claude';
 
 		// Un campo de clave vacío conserva la clave guardada.

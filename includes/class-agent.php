@@ -10,7 +10,12 @@ class Qhatuq_Agent {
 
 	const FALLBACK_REPLY = 'Disculpe, en este momento no puedo responder. Si me deja su nombre, teléfono o correo y lo que necesita, un representante se comunicará con usted. También puede intentarlo nuevamente en unos minutos.';
 
-	public static function make_provider( string $provider, string $model ): Qhatuq_Provider {
+	/** La verificación en la web de productos fuera del catálogo solo está disponible con Claude. */
+	public static function web_search_enabled( string $provider ): bool {
+		return 'claude' === $provider && ! empty( Qhatuq_Settings::get( 'web_search' ) );
+	}
+
+	public static function make_provider( string $provider, string $model, bool $web_search = false ): Qhatuq_Provider {
 		$key = Qhatuq_Settings::api_key( $provider );
 		if ( '' === $key ) {
 			throw new Qhatuq_Provider_Exception( 'No hay API key configurada para ' . $provider . '.' );
@@ -18,7 +23,7 @@ class Qhatuq_Agent {
 		if ( 'gemini' === $provider ) {
 			return new Qhatuq_Provider_Gemini( $key, $model );
 		}
-		return new Qhatuq_Provider_Claude( $key, $model, (string) Qhatuq_Settings::get( 'claude_effort' ) );
+		return new Qhatuq_Provider_Claude( $key, $model, (string) Qhatuq_Settings::get( 'claude_effort' ), $web_search );
 	}
 
 	public static function current_model( string $provider ): string {
@@ -27,14 +32,16 @@ class Qhatuq_Agent {
 
 	/** Crea una conversación nueva con las instrucciones congeladas. Devuelve [conversación, token]. */
 	public static function start( string $page_url ): array {
-		$provider = (string) Qhatuq_Settings::get( 'provider' );
-		$token    = wp_generate_password( 40, false, false );
+		$provider   = (string) Qhatuq_Settings::get( 'provider' );
+		$web_search = self::web_search_enabled( $provider );
+		$token      = wp_generate_password( 40, false, false );
 		$conv     = Qhatuq_DB::create_conversation(
 			array(
 				'token_hash'    => hash( 'sha256', $token ),
 				'provider'      => $provider,
 				'model'         => self::current_model( $provider ),
-				'system_prompt' => Qhatuq_Prompt::build(),
+				'system_prompt' => Qhatuq_Prompt::build( $web_search ),
+				'web_search'    => $web_search,
 				'page_url'      => $page_url,
 				'ip_hash'       => self::ip_hash(),
 				'user_agent'    => sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ?? '' ) ),
@@ -66,7 +73,7 @@ class Qhatuq_Agent {
 
 		try {
 			// Una conversación sigue con el proveedor y modelo con que empezó.
-			$provider   = self::make_provider( $conv['provider'], $conv['model'] );
+			$provider   = self::make_provider( $conv['provider'], $conv['model'], ! empty( $conv['web_search'] ) );
 			$transcript = 'gemini' === $conv['provider'] ? Qhatuq_Provider_Gemini::restore( $transcript ) : Qhatuq_Provider_Claude::restore( $transcript );
 			$result     = $provider->run_turn(
 				(string) $conv['system_prompt'],
@@ -93,6 +100,10 @@ class Qhatuq_Agent {
 			)
 		);
 		Qhatuq_DB::add_usage( $conv_id, $result['usage'] );
+		// Las búsquedas quedan en la conversación para que el equipo vea qué se verificó.
+		foreach ( $result['searches'] ?? array() as $query ) {
+			Qhatuq_DB::add_message( $conv_id, 'search', $query );
+		}
 		Qhatuq_DB::add_message( $conv_id, 'assistant', $result['text'] );
 
 		return array(

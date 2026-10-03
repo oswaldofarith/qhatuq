@@ -42,6 +42,8 @@ class Qhatuq_DB {
 			input_tokens bigint(20) unsigned NOT NULL DEFAULT 0,
 			output_tokens bigint(20) unsigned NOT NULL DEFAULT 0,
 			cache_read_tokens bigint(20) unsigned NOT NULL DEFAULT 0,
+			web_search tinyint(1) NOT NULL DEFAULT 0,
+			web_searches int(10) unsigned NOT NULL DEFAULT 0,
 			status varchar(20) NOT NULL DEFAULT 'open',
 			created_at datetime NOT NULL,
 			updated_at datetime NOT NULL,
@@ -76,6 +78,7 @@ class Qhatuq_DB {
 			temperature varchar(20) NOT NULL DEFAULT 'frio',
 			summary text NOT NULL,
 			status varchar(20) NOT NULL DEFAULT 'nuevo',
+			off_catalog text NULL,
 			notes text NOT NULL,
 			notified_at datetime NULL DEFAULT NULL,
 			created_at datetime NOT NULL,
@@ -143,6 +146,7 @@ class Qhatuq_DB {
 			'page_url'      => mb_substr( (string) $data['page_url'], 0, 500 ),
 			'ip_hash'       => $data['ip_hash'],
 			'user_agent'    => mb_substr( (string) $data['user_agent'], 0, 255 ),
+			'web_search'    => empty( $data['web_search'] ) ? 0 : 1,
 			'created_at'    => self::now(),
 			'updated_at'    => self::now(),
 		);
@@ -176,10 +180,11 @@ class Qhatuq_DB {
 		$t = self::table( 'conversations' );
 		$wpdb->query(
 			$wpdb->prepare(
-				"UPDATE {$t} SET input_tokens = input_tokens + %d, output_tokens = output_tokens + %d, cache_read_tokens = cache_read_tokens + %d WHERE id = %d",
+				"UPDATE {$t} SET input_tokens = input_tokens + %d, output_tokens = output_tokens + %d, cache_read_tokens = cache_read_tokens + %d, web_searches = web_searches + %d WHERE id = %d",
 				(int) ( $usage['input'] ?? 0 ),
 				(int) ( $usage['output'] ?? 0 ),
 				(int) ( $usage['cache_read'] ?? 0 ),
+				(int) ( $usage['web_searches'] ?? 0 ),
 				$id
 			)
 		);

@@ -254,7 +254,12 @@
 	}
 
 	var typingRow = null;
+	var typingTimers = [];
+	var WAIT_LABELS = ['Un momento, por favor…', 'Estoy verificando la información…', 'Ya casi…'];
+
 	function typing(on) {
+		typingTimers.forEach(clearTimeout);
+		typingTimers = [];
 		if (on && !typingRow) {
 			typingRow = el('div', 'row assistant typing' + (lastRole === 'assistant' ? ' cont' : ''));
 			typingRow.appendChild(lastRole === 'assistant' ? el('span', 'avatar-space') : avatar('sm'));
@@ -264,6 +269,17 @@
 			typingRow.appendChild(b);
 			log.appendChild(typingRow);
 			scrollDown();
+			// Si la respuesta tarda (por ejemplo, porque el agente está verificando un
+			// producto), se muestra un aviso que va cambiando.
+			[5000, 14000, 26000].forEach(function (ms, i) {
+				typingTimers.push(setTimeout(function () {
+					if (!typingRow) { return; }
+					var label = typingRow.querySelector('.wait') || el('span', 'wait');
+					label.textContent = WAIT_LABELS[i];
+					b.appendChild(label);
+					scrollDown();
+				}, ms));
+			});
 		} else if (!on && typingRow) {
 			typingRow.remove();
 			typingRow = null;

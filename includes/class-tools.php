@@ -40,6 +40,10 @@ class Qhatuq_Tools {
 							'description' => 'Qué tan cerca está de comprar, según los criterios indicados.',
 						),
 						'resumen'     => array( 'type' => 'string', 'description' => 'Resumen de 1 a 3 oraciones para el representante comercial.' ),
+						'fuera_de_catalogo' => array(
+							'type'        => 'string',
+							'description' => 'Solo si pidió un producto que no está en el catálogo: cuál es y el resultado de la verificación (ej.: "AutoCAD LT 2027: disponible, se vende en línea en EE. UU." o "Equipo X: no concluyente, solo contactando a ventas").',
+						),
 					),
 					'required'             => array( 'temperatura', 'resumen' ),
 				),

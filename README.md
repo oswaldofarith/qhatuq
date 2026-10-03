@@ -6,6 +6,11 @@
 - **Sabe lo que no ofrecen.** Para cada caso usted define qué hacer: decir que no con amabilidad (opción por defecto), ofrecer una alternativa o recomendar a un socio de negocio.
 - **Respeta prohibiciones configurables.** Por ejemplo: no ofrecer descuentos, no comprometer plazos, no hablar de la competencia.
 - **No da precios.** Si el cliente insiste y el producto tiene un precio referencial autorizado, responde "el precio empieza alrededor de…" y lo remite a un representante.
+- **Verifica productos fuera del catálogo** (solo con Claude). Si piden una licencia, suscripción o equipo que no está en el catálogo ni en "Lo que no ofrecemos", el agente busca en la web si se vende abiertamente en EE. UU. o Ecuador:
+  - **Si se vende:** lo trata como un producto más y pasa a cotizar.
+  - **Si no es concluyente:** con sus propias palabras ofrece que alguien del equipo lo confirme.
+
+  Nunca menciona precios encontrados ni envía al cliente a otras tiendas. Las búsquedas quedan registradas en la conversación y el resultado en el lead.
 - **Registra leads.** Pide nombre, teléfono, correo, empresa y necesidad (productos y cantidades), y clasifica cada lead como caliente, tibio o frío.
 - **Avisa por correo** al equipo comercial cuando un lead tiene datos de contacto y una necesidad.
 - **Guarda las conversaciones** en un panel con las conversaciones completas, los leads con su estado (nuevo, contactado, cotizado, ganado, perdido), notas internas y exportación a CSV.
@@ -51,6 +56,8 @@
 - Una conversación de unos 10 mensajes con Claude Opus 5.5 cuesta aproximadamente entre US$0.10 y 0.20. Con el tráfico previsto (unas decenas de conversaciones al mes), el gasto mensual es de pocos dólares.
 - Las instrucciones y el catálogo se envían con caché de prompts, así que repetirlos en cada mensaje cuesta una fracción del precio normal.
 - Cada conversación muestra en el panel los tokens que consumió.
+
+> **Búsqueda web:** se activa en Ajustes → "Productos fuera del catálogo" y viene activada por defecto. Cuesta US$10 por cada 1.000 búsquedas, con un máximo de 3 por mensaje. Si la API de Claude rechaza la búsqueda, revise en platform.claude.com que la búsqueda web esté permitida para su organización. Mientras tanto, el error queda registrado en la conversación.
 
 ## Cómo funciona
 

@@ -20,7 +20,7 @@ interface Qhatuq_Provider {
 	 * @param array    $transcript  Historial en el formato nativo del proveedor (por referencia).
 	 * @param string   $user_text   Mensaje del visitante.
 	 * @param callable $run_tool    fn(string $name, array $input): array{0:string,1:bool}
-	 * @return array{text:string, usage:array{input:int,output:int,cache_read:int}}
+	 * @return array{text:string, usage:array{input:int,output:int,cache_read:int,web_searches?:int}, searches?:string[]}
 	 * @throws Qhatuq_Provider_Exception
 	 */
 	public function run_turn( string $system, array &$transcript, string $user_text, callable $run_tool ): array;

@@ -19,7 +19,10 @@ use Anthropic\Core\Exceptions\RateLimitException;
 
 class Qhatuq_Provider_Claude implements Qhatuq_Provider {
 
-	const MAX_TOOL_ROUNDS = 6;
+	const MAX_TOOL_ROUNDS = 8;
+
+	/** Tope de búsquedas web por mensaje del visitante. */
+	const MAX_WEB_SEARCHES = 3;
 
 	/** Modelos con pensamiento adaptativo, esfuerzo configurable y respaldo automático del servidor. */
 	const CURRENT_MODELS = array( 'claude-opus-5-5', 'claude-sonnet-5-5' );
@@ -27,11 +30,13 @@ class Qhatuq_Provider_Claude implements Qhatuq_Provider {
 	private string $api_key;
 	private string $model;
 	private string $effort;
+	private bool $web_search;
 
-	public function __construct( string $api_key, string $model, string $effort = 'low' ) {
-		$this->api_key = $api_key;
-		$this->model   = $model;
-		$this->effort  = $effort;
+	public function __construct( string $api_key, string $model, string $effort = 'low', bool $web_search = false ) {
+		$this->api_key    = $api_key;
+		$this->model      = $model;
+		$this->effort     = $effort;
+		$this->web_search = $web_search;
 	}
 
 	public static function available(): bool {
@@ -53,7 +58,8 @@ class Qhatuq_Provider_Claude implements Qhatuq_Provider {
 
 		$client   = new Client( apiKey: $this->api_key, requestOptions: array( 'maxRetries' => 2, 'timeout' => 90 ) );
 		$original = $transcript;
-		$usage    = array( 'input' => 0, 'output' => 0, 'cache_read' => 0 );
+		$usage    = array( 'input' => 0, 'output' => 0, 'cache_read' => 0, 'web_searches' => 0 );
+		$searches = array();
 
 		$transcript[] = array( 'role' => 'user', 'content' => $user_text );
 
@@ -64,6 +70,9 @@ class Qhatuq_Provider_Claude implements Qhatuq_Provider {
 				$usage['input']      += (int) $response->usage->inputTokens + (int) $response->usage->cacheCreationInputTokens;
 				$usage['output']     += (int) $response->usage->outputTokens;
 				$usage['cache_read'] += (int) $response->usage->cacheReadInputTokens;
+				if ( $response->usage->serverToolUse ) {
+					$usage['web_searches'] += (int) $response->usage->serverToolUse->webSearchRequests;
+				}
 
 				if ( 'refusal' === $response->stopReason ) {
 					// La respuesta rechazada no entra al historial: se deshace todo el turno.
@@ -77,12 +86,24 @@ class Qhatuq_Provider_Claude implements Qhatuq_Provider {
 				$blocks       = self::blocks_to_array( $response->content );
 				$transcript[] = array( 'role' => 'assistant', 'content' => $blocks );
 
+				foreach ( $blocks as $block ) {
+					if ( 'server_tool_use' === ( $block['type'] ?? '' ) && 'web_search' === ( $block['name'] ?? '' ) ) {
+						$searches[] = (string) ( $block['input']['query'] ?? '' );
+					}
+				}
+
+				// La búsqueda en el servidor se pausó a mitad de camino: se reenvía tal cual
+				// (sin agregar mensajes) y la API la retoma donde quedó.
+				if ( 'pause_turn' === $response->stopReason ) {
+					continue;
+				}
+
 				if ( 'tool_use' !== $response->stopReason ) {
-					$text = self::text_of( $blocks );
+					$text = self::text_of( $blocks, $transcript, count( $original ) );
 					if ( '' === $text ) {
 						$text = 'Disculpe, ¿podría repetirme su consulta?';
 					}
-					return array( 'text' => $text, 'usage' => $usage );
+					return array( 'text' => $text, 'usage' => $usage, 'searches' => array_filter( $searches ) );
 				}
 
 				// Todas las respuestas de herramientas van en un único mensaje de usuario.
@@ -137,7 +158,7 @@ class Qhatuq_Provider_Claude implements Qhatuq_Provider {
 				),
 			),
 			'cacheControl' => array( 'type' => 'ephemeral' ),
-			'tools'        => self::tools(),
+			'tools'        => $this->tools(),
 			'messages'     => $transcript,
 		);
 
@@ -157,8 +178,8 @@ class Qhatuq_Provider_Claude implements Qhatuq_Provider {
 		return $args;
 	}
 
-	private static function tools(): array {
-		return array_map(
+	private function tools(): array {
+		$tools = array_map(
 			static fn( $t ) => array(
 				'name'         => $t['name'],
 				'description'  => $t['description'],
@@ -166,6 +187,15 @@ class Qhatuq_Provider_Claude implements Qhatuq_Provider {
 			),
 			Qhatuq_Tools::definitions()
 		);
+		if ( $this->web_search ) {
+			// Búsqueda web ejecutada por Anthropic: no requiere otra API key.
+			$tools[] = array(
+				'type'     => in_array( $this->model, self::CURRENT_MODELS, true ) ? 'web_search_20260209' : 'web_search_20250305',
+				'name'     => 'web_search',
+				'max_uses' => self::MAX_WEB_SEARCHES,
+			);
+		}
+		return $tools;
 	}
 
 	/** Convierte los bloques del SDK al formato de la API para guardarlos y reenviarlos tal cual. */
@@ -181,11 +211,28 @@ class Qhatuq_Provider_Claude implements Qhatuq_Provider {
 		return $blocks;
 	}
 
-	private static function text_of( array $blocks ): string {
+	/**
+	 * Texto visible de la respuesta. Si hubo pausas (pause_turn), el texto puede venir
+	 * repartido en varios mensajes del asistente de este turno: se juntan todos los que
+	 * siguen a la última respuesta de herramientas.
+	 */
+	private static function text_of( array $blocks, array $transcript = array(), int $turn_start = 0 ): string {
+		$parts = array();
+		for ( $i = count( $transcript ) - 1; $i > $turn_start; $i-- ) {
+			if ( 'assistant' !== $transcript[ $i ]['role'] ) {
+				break;
+			}
+			array_unshift( $parts, $transcript[ $i ]['content'] );
+		}
+		if ( ! $parts ) {
+			$parts = array( $blocks );
+		}
 		$text = '';
-		foreach ( $blocks as $block ) {
-			if ( 'text' === ( $block['type'] ?? '' ) ) {
-				$text .= $block['text'];
+		foreach ( $parts as $content ) {
+			foreach ( $content as $block ) {
+				if ( 'text' === ( $block['type'] ?? '' ) ) {
+					$text .= $block['text'];
+				}
 			}
 		}
 		return trim( $text );

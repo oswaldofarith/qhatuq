@@ -151,6 +151,13 @@ class Qhatuq_Admin {
 							<p class="description">No aplica a Claude Haiku 4.5.</p>
 						</td>
 					</tr>
+					<tr>
+						<th>Productos fuera del catálogo</th>
+						<td>
+							<label><input type="checkbox" name="<?php echo $f( 'web_search' ); ?>" value="1" <?php checked( $s['web_search'], 1 ); ?>> Verificar en la web si se venden (solo con Claude)</label>
+							<p class="description">Si el cliente pide una licencia, suscripción o equipo que no está en el catálogo ni en "Lo que no ofrecemos", el agente busca si se vende abiertamente en línea en EE. UU. o Ecuador. Si se vende, lo trata como un producto más; si no es concluyente, deriva a un representante. Nunca menciona precios encontrados. Costo: US$10 por cada 1.000 búsquedas (máximo 3 por mensaje). Con Gemini, o con esta opción desactivada, esos casos siempre se derivan a un representante.</p>
+						</td>
+					</tr>
 					<?php self::key_row( 'gemini', 'API key de Gemini', 'aistudio.google.com', $s ); ?>
 					<tr>
 						<th><label for="qhatuq-gemini-model">Modelo de Gemini</label></th>
@@ -302,7 +309,7 @@ class Qhatuq_Admin {
 
 			<h2>Vista previa de las instrucciones</h2>
 			<p class="description">Así recibe el agente la configuración y el catálogo actuales (los precios no se incluyen).</p>
-			<textarea class="large-text code" rows="16" readonly><?php echo esc_textarea( Qhatuq_Prompt::build() ); ?></textarea>
+			<textarea class="large-text code" rows="16" readonly><?php echo esc_textarea( Qhatuq_Prompt::build( Qhatuq_Agent::web_search_enabled( (string) $s['provider'] ) ) ); ?></textarea>
 		</div>
 		<?php
 	}
@@ -459,9 +466,9 @@ class Qhatuq_Admin {
 		header( 'Content-Disposition: attachment; filename=leads-' . gmdate( 'Y-m-d' ) . '.csv' );
 		$out = fopen( 'php://output', 'w' );
 		fwrite( $out, "\xEF\xBB\xBF" ); // BOM para que Excel reconozca UTF-8.
-		fputcsv( $out, array( 'ID', 'Fecha', 'Nombre', 'Empresa', 'Teléfono', 'Correo', 'Necesidad', 'Productos', 'Temperatura', 'Estado', 'Resumen', 'Notas' ) );
+		fputcsv( $out, array( 'ID', 'Fecha', 'Nombre', 'Empresa', 'Teléfono', 'Correo', 'Necesidad', 'Productos', 'Temperatura', 'Estado', 'Resumen', 'Fuera de catálogo', 'Notas' ) );
 		foreach ( $rows as $r ) {
-			$cells = array( $r['id'], get_date_from_gmt( $r['created_at'], 'Y-m-d H:i' ), $r['name'], $r['company'], $r['phone'], $r['email'], $r['need'], Qhatuq_Leads::items_text( $r ), $r['temperature'], $r['status'], $r['summary'], $r['notes'] );
+			$cells = array( $r['id'], get_date_from_gmt( $r['created_at'], 'Y-m-d H:i' ), $r['name'], $r['company'], $r['phone'], $r['email'], $r['need'], Qhatuq_Leads::items_text( $r ), $r['temperature'], $r['status'], $r['summary'], (string) $r['off_catalog'], $r['notes'] );
 			// Evita que una celda que empiece con =, +, - o @ se interprete como fórmula.
 			$cells = array_map( static fn( $c ) => preg_match( '/^[=+\-@\t\r]/', (string) $c ) ? "'" . $c : $c, $cells );
 			fputcsv( $out, $cells );
@@ -486,6 +493,9 @@ class Qhatuq_Admin {
 						<?php echo esc_html( get_date_from_gmt( $conv['created_at'], 'd/m/Y H:i' ) ); ?> ·
 						<?php echo esc_html( $conv['provider'] . ' / ' . $conv['model'] ); ?> ·
 						Tokens: <?php echo esc_html( number_format_i18n( (int) $conv['input_tokens'] ) . ' entrada, ' . number_format_i18n( (int) $conv['cache_read_tokens'] ) . ' desde caché, ' . number_format_i18n( (int) $conv['output_tokens'] ) . ' salida' ); ?>
+						<?php if ( (int) $conv['web_searches'] ) : ?>
+							· Búsquedas web: <?php echo (int) $conv['web_searches']; ?>
+						<?php endif; ?>
 						<?php if ( $conv['page_url'] ) : ?>
 							· Página: <a href="<?php echo esc_url( $conv['page_url'] ); ?>" target="_blank"><?php echo esc_html( $conv['page_url'] ); ?></a>
 						<?php endif; ?>
@@ -524,11 +534,13 @@ class Qhatuq_Admin {
 		$labels = array(
 			'user'      => 'Visitante',
 			'assistant' => 'Agente',
+			'search'    => 'Búsqueda web del agente',
 			'error'     => 'Error técnico',
 		);
 		$colors = array(
 			'user'      => '#e8f0fb',
 			'assistant' => '#f6f7f7',
+			'search'    => '#fcf9e8',
 			'error'     => '#fcf0f1',
 		);
 		foreach ( $messages as $m ) {
