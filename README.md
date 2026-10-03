@@ -18,8 +18,9 @@
 
 ## Instalación
 
-1. Descargue `qhatuq.zip`. Lo genera GitHub Actions en cada push: pestaña **Actions** → la ejecución más reciente → artefacto **qhatuq**. También se adjunta a cada release `v*`.
-   Si prefiere generarlo usted mismo: `bin/build-zip.sh`. Requiere `composer` y `zip`.
+1. Descargue el ZIP del plugin. Lo genera GitHub Actions en cada push: pestaña **Actions** → la ejecución más reciente → artefacto **qhatuq-plugin**. El archivo descargado (`qhatuq-plugin.zip`) es el plugin listo para subir: **no lo descomprima**.
+   También se adjunta como `qhatuq.zip` a cada release `v*`. Si prefiere generarlo usted mismo, ejecute `bin/build-zip.sh` (queda en `dist/qhatuq.zip`; requiere `composer` y `zip`).
+   No use el botón "Download ZIP" del repositorio: ese archivo no incluye las dependencias (`vendor/`).
 2. En WordPress vaya a **Plugins → Añadir nuevo → Subir plugin**, suba el ZIP y actívelo.
 3. Vaya a **Agente de ventas → Ajustes**:
    - Elija el proveedor y pegue la API key.

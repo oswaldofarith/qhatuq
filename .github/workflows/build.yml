@@ -26,13 +26,17 @@ jobs:
       - name: Build ZIP
         run: bin/build-zip.sh
 
+      # GitHub comprime el artefacto al descargarlo. Se sube la carpeta build/,
+      # que contiene solo qhatuq/, para que el ZIP descargado sea directamente
+      # el plugin (qhatuq/qhatuq.php) y no un ZIP dentro de otro.
       - uses: actions/upload-artifact@v4
         with:
-          name: qhatuq
-          path: build/qhatuq.zip
+          name: qhatuq-plugin
+          path: build/
+          include-hidden-files: false
 
       - name: Attach to release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: build/qhatuq.zip
+          files: dist/qhatuq.zip
