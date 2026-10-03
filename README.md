@@ -10,7 +10,7 @@
 - **Avisa por correo** al equipo comercial cuando un lead tiene datos de contacto y una necesidad.
 - **Guarda las conversaciones** en un panel con las conversaciones completas, los leads con su estado (nuevo, contactado, cotizado, ganado, perdido), notas internas y exportación a CSV.
 - Funciona con **Claude (Anthropic)** o con **Gemini (Google)**.
-- **Interfaz moderna y aislada del tema:** el chat se dibuja en un Shadow DOM, así que BeTheme u otros temas no alteran su aspecto. Tiene avatar configurable, sugerencias rápidas, burbuja de invitación opcional, contraste automático según el color de marca y pantalla completa en móviles.
+- **Interfaz moderna y aislada del tema:** el chat se dibuja en un Shadow DOM, así que BeTheme u otros temas no alteran su aspecto. Tiene foto del agente (se sube desde la Biblioteca de medios), sugerencias rápidas, burbuja de invitación opcional, contraste automático según el color de marca y pantalla completa en móviles.
 
 ## Requisitos
 

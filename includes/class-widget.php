@@ -33,7 +33,7 @@ class Qhatuq_Widget {
 				'privacyUrl'    => $s['privacy_url'],
 				'color'         => $s['widget_color'],
 				'position'      => $s['widget_position'],
-				'avatar'        => $s['widget_avatar'],
+				'avatar'        => Qhatuq_Settings::avatar_url(),
 				'suggestions'   => array_values( array_filter( explode( "\n", (string) $s['widget_suggestions'] ) ) ),
 				'teaserDelay'   => (int) $s['teaser_delay'],
 				// La hoja de estilos se carga dentro del Shadow DOM del widget, aislada del tema.

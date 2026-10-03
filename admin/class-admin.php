@@ -16,6 +16,50 @@ class Qhatuq_Admin {
 		add_action( 'admin_post_qhatuq_leads_csv', array( __CLASS__, 'handle_csv' ) );
 		add_action( 'admin_post_qhatuq_test', array( __CLASS__, 'handle_test' ) );
 		add_action( 'admin_notices', array( __CLASS__, 'notices' ) );
+		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'assets' ) );
+	}
+
+	/** Selector de la foto del agente con la Biblioteca de medios (solo en Ajustes). */
+	public static function assets(): void {
+		if ( 'qhatuq-settings' !== ( $_GET['page'] ?? '' ) ) { // phpcs:ignore WordPress.Security.NonceVerification
+			return;
+		}
+		wp_enqueue_media();
+		wp_register_style( 'qhatuq-admin', false, array(), QHATUQ_VERSION );
+		wp_enqueue_style( 'qhatuq-admin' );
+		wp_add_inline_style(
+			'qhatuq-admin',
+			'.qhatuq-avatar-field{display:flex;align-items:center;gap:12px}
+			.qhatuq-avatar-preview,.qhatuq-avatar-empty{width:64px;height:64px;border-radius:50%;overflow:hidden;flex:none;background:#2271b1;color:#fff;font-size:26px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 0 0 1px #dcdcde}
+			.qhatuq-avatar-preview img{width:100%;height:100%;object-fit:cover}'
+		);
+		wp_add_inline_script(
+			'media-editor',
+			"jQuery(function($){
+				var frame;
+				function setAvatar(id, url){
+					$('#qhatuq-avatar-id').val(id || 0);
+					$('#qhatuq-avatar-url').val('');
+					$('.qhatuq-avatar-preview').toggle(!!url).find('img').attr('src', url || '');
+					$('.qhatuq-avatar-empty').toggle(!url);
+					$('#qhatuq-avatar-remove').toggle(!!url);
+					$('#qhatuq-avatar-pick').text(url ? 'Cambiar foto' : 'Subir o elegir foto');
+				}
+				$('#qhatuq-avatar-pick').on('click', function(e){
+					e.preventDefault();
+					if (!frame) {
+						frame = wp.media({ title: 'Foto del agente', button: { text: 'Usar esta foto' }, library: { type: 'image' }, multiple: false });
+						frame.on('select', function(){
+							var a = frame.state().get('selection').first().toJSON();
+							var url = (a.sizes && (a.sizes.thumbnail || a.sizes.medium) || a).url;
+							setAvatar(a.id, url);
+						});
+					}
+					frame.open();
+				});
+				$('#qhatuq-avatar-remove').on('click', function(e){ e.preventDefault(); setAvatar(0, ''); });
+			});"
+		);
 	}
 
 	public static function menu(): void {
@@ -198,10 +242,18 @@ class Qhatuq_Admin {
 						<td><input type="text" id="qhatuq-title" class="regular-text" name="<?php echo $f( 'widget_title' ); ?>" value="<?php echo esc_attr( $s['widget_title'] ); ?>"></td>
 					</tr>
 					<tr>
-						<th><label for="qhatuq-avatar">Avatar del agente</label></th>
+						<th>Foto del agente</th>
 						<td>
-							<input type="url" id="qhatuq-avatar" class="large-text" name="<?php echo $f( 'widget_avatar' ); ?>" value="<?php echo esc_attr( $s['widget_avatar'] ); ?>" placeholder="https://…/avatar.png">
-							<p class="description">URL de una imagen cuadrada (por ejemplo, desde la Biblioteca de medios). Si se deja vacío se muestra la inicial del agente.</p>
+							<?php $avatar = Qhatuq_Settings::avatar_url(); ?>
+							<div class="qhatuq-avatar-field">
+								<span class="qhatuq-avatar-preview" style="<?php echo $avatar ? '' : 'display:none'; ?>"><img src="<?php echo esc_url( $avatar ); ?>" alt=""></span>
+								<span class="qhatuq-avatar-empty" style="<?php echo $avatar ? 'display:none' : ''; ?>"><?php echo esc_html( mb_strtoupper( mb_substr( $s['agent_name'] ? $s['agent_name'] : 'A', 0, 1 ) ) ); ?></span>
+								<input type="hidden" id="qhatuq-avatar-id" name="<?php echo $f( 'widget_avatar_id' ); ?>" value="<?php echo esc_attr( (int) $s['widget_avatar_id'] ); ?>">
+								<input type="hidden" id="qhatuq-avatar-url" name="<?php echo $f( 'widget_avatar' ); ?>" value="<?php echo esc_attr( $s['widget_avatar'] ); ?>">
+								<button type="button" class="button" id="qhatuq-avatar-pick"><?php echo $avatar ? 'Cambiar foto' : 'Subir o elegir foto'; ?></button>
+								<button type="button" class="button-link button-link-delete" id="qhatuq-avatar-remove" style="<?php echo $avatar ? '' : 'display:none'; ?>">Quitar</button>
+							</div>
+							<p class="description">Se muestra en la cabecera del chat y junto a cada respuesta. Use una imagen cuadrada de al menos 200 × 200 px. Sin foto se muestra la inicial del agente.</p>
 						</td>
 					</tr>
 					<tr>

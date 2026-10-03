@@ -60,6 +60,7 @@ class Qhatuq_Settings {
 			'widget_position'      => 'right',
 			'widget_title'         => 'Asesor comercial',
 			'widget_avatar'        => '',
+			'widget_avatar_id'     => 0,
 			'widget_suggestions'   => "Licencias de software\nCentrales IP PBX\nServicios de TI\nQuiero una cotización",
 			'teaser_delay'         => 12,
 
@@ -94,6 +95,18 @@ class Qhatuq_Settings {
 	public static function key_from_constant( string $provider ): bool {
 		$const = 'claude' === $provider ? 'QHATUQ_CLAUDE_API_KEY' : 'QHATUQ_GEMINI_API_KEY';
 		return defined( $const ) && constant( $const );
+	}
+
+	/** URL de la foto del agente: la imagen elegida en la Biblioteca de medios o, si no hay, la URL antigua. */
+	public static function avatar_url(): string {
+		$id = (int) self::get( 'widget_avatar_id' );
+		if ( $id ) {
+			$url = wp_get_attachment_image_url( $id, array( 192, 192 ) );
+			if ( $url ) {
+				return $url;
+			}
+		}
+		return (string) self::get( 'widget_avatar' );
 	}
 
 	public static function sanitize( $input ): array {
@@ -135,6 +148,8 @@ class Qhatuq_Settings {
 		$out['widget_color']    = $color ? $color : $defaults['widget_color'];
 		$out['widget_position'] = 'left' === ( $input['widget_position'] ?? '' ) ? 'left' : 'right';
 		$out['widget_avatar']   = esc_url_raw( $input['widget_avatar'] ?? '' );
+		$avatar_id              = absint( $input['widget_avatar_id'] ?? 0 );
+		$out['widget_avatar_id'] = $avatar_id && wp_attachment_is_image( $avatar_id ) ? $avatar_id : 0;
 		$suggestions            = array_filter( array_map( 'sanitize_text_field', array_map( 'trim', explode( "\n", (string) ( $input['widget_suggestions'] ?? '' ) ) ) ) );
 		$out['widget_suggestions'] = implode( "\n", array_slice( $suggestions, 0, 6 ) );
 
