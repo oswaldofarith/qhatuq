@@ -59,6 +59,9 @@ class Qhatuq_Settings {
 			'widget_color'         => '#0b5cab',
 			'widget_position'      => 'right',
 			'widget_title'         => 'Asesor comercial',
+			'widget_avatar'        => '',
+			'widget_suggestions'   => "Licencias de software\nCentrales IP PBX\nServicios de TI\nQuiero una cotización",
+			'teaser_delay'         => 12,
 
 			'max_messages'         => 40,
 			'max_per_ip_hour'      => 60,
@@ -131,12 +134,16 @@ class Qhatuq_Settings {
 		$color                  = sanitize_hex_color( $input['widget_color'] ?? '' );
 		$out['widget_color']    = $color ? $color : $defaults['widget_color'];
 		$out['widget_position'] = 'left' === ( $input['widget_position'] ?? '' ) ? 'left' : 'right';
+		$out['widget_avatar']   = esc_url_raw( $input['widget_avatar'] ?? '' );
+		$suggestions            = array_filter( array_map( 'sanitize_text_field', array_map( 'trim', explode( "\n", (string) ( $input['widget_suggestions'] ?? '' ) ) ) ) );
+		$out['widget_suggestions'] = implode( "\n", array_slice( $suggestions, 0, 6 ) );
 
 		$ints = array(
 			'max_messages'      => array( 4, 200 ),
 			'max_per_ip_hour'   => array( 5, 1000 ),
 			'max_message_chars' => array( 200, 5000 ),
 			'retention_days'    => array( 0, 3650 ),
+			'teaser_delay'      => array( 0, 300 ),
 		);
 		foreach ( $ints as $k => list( $min, $max ) ) {
 			$out[ $k ] = max( $min, min( $max, absint( $input[ $k ] ?? $defaults[ $k ] ) ) );

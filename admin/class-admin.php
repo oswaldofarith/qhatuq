@@ -198,6 +198,24 @@ class Qhatuq_Admin {
 						<td><input type="text" id="qhatuq-title" class="regular-text" name="<?php echo $f( 'widget_title' ); ?>" value="<?php echo esc_attr( $s['widget_title'] ); ?>"></td>
 					</tr>
 					<tr>
+						<th><label for="qhatuq-avatar">Avatar del agente</label></th>
+						<td>
+							<input type="url" id="qhatuq-avatar" class="large-text" name="<?php echo $f( 'widget_avatar' ); ?>" value="<?php echo esc_attr( $s['widget_avatar'] ); ?>" placeholder="https://…/avatar.png">
+							<p class="description">URL de una imagen cuadrada (por ejemplo, desde la Biblioteca de medios). Si se deja vacío se muestra la inicial del agente.</p>
+						</td>
+					</tr>
+					<tr>
+						<th><label for="qhatuq-suggestions">Sugerencias rápidas</label></th>
+						<td>
+							<textarea id="qhatuq-suggestions" class="large-text" rows="4" name="<?php echo $f( 'widget_suggestions' ); ?>"><?php echo esc_textarea( $s['widget_suggestions'] ); ?></textarea>
+							<p class="description">Botones que se muestran al iniciar el chat; una por línea, máximo 6. Deje vacío para no mostrarlos.</p>
+						</td>
+					</tr>
+					<tr>
+						<th><label for="qhatuq-teaser">Burbuja de invitación</label></th>
+						<td><input type="number" id="qhatuq-teaser" min="0" max="300" name="<?php echo $f( 'teaser_delay' ); ?>" value="<?php echo esc_attr( $s['teaser_delay'] ); ?>"> segundos <span class="description">(muestra el saludo junto al botón tras ese tiempo, una vez por visita; 0 = desactivada)</span></td>
+					</tr>
+					<tr>
 						<th><label for="qhatuq-color">Color</label></th>
 						<td><input type="color" id="qhatuq-color" name="<?php echo $f( 'widget_color' ); ?>" value="<?php echo esc_attr( $s['widget_color'] ); ?>"></td>
 					</tr>

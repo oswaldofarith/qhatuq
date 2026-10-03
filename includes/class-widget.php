@@ -20,7 +20,6 @@ class Qhatuq_Widget {
 			return;
 		}
 
-		wp_enqueue_style( 'qhatuq-widget', QHATUQ_URL . 'assets/widget.css', array(), QHATUQ_VERSION );
 		wp_enqueue_script( 'qhatuq-widget', QHATUQ_URL . 'assets/widget.js', array(), QHATUQ_VERSION, array( 'in_footer' => true, 'strategy' => 'defer' ) );
 		wp_localize_script(
 			'qhatuq-widget',
@@ -34,6 +33,11 @@ class Qhatuq_Widget {
 				'privacyUrl'    => $s['privacy_url'],
 				'color'         => $s['widget_color'],
 				'position'      => $s['widget_position'],
+				'avatar'        => $s['widget_avatar'],
+				'suggestions'   => array_values( array_filter( explode( "\n", (string) $s['widget_suggestions'] ) ) ),
+				'teaserDelay'   => (int) $s['teaser_delay'],
+				// La hoja de estilos se carga dentro del Shadow DOM del widget, aislada del tema.
+				'cssUrl'        => add_query_arg( 'ver', QHATUQ_VERSION, QHATUQ_URL . 'assets/widget.css' ),
 				'maxChars'      => (int) $s['max_message_chars'],
 				'storageKey'    => 'qhatuq_' . substr( md5( home_url() ), 0, 8 ),
 			)
