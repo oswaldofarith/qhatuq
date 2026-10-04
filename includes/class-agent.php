@@ -10,9 +10,9 @@ class Qhatuq_Agent {
 
 	const FALLBACK_REPLY = 'Disculpe, en este momento no puedo responder. Si me deja su nombre, teléfono o correo y lo que necesita, un representante se comunicará con usted. También puede intentarlo nuevamente en unos minutos.';
 
-	/** La verificación en la web de productos fuera del catálogo solo está disponible con Claude. */
+	/** Verificación en la web de productos fuera del catálogo (Claude: búsqueda propia; Gemini: verificar_producto). */
 	public static function web_search_enabled( string $provider ): bool {
-		return 'claude' === $provider && ! empty( Qhatuq_Settings::get( 'web_search' ) );
+		return ! empty( Qhatuq_Settings::get( 'web_search' ) );
 	}
 
 	public static function make_provider( string $provider, string $model, bool $web_search = false ): Qhatuq_Provider {
@@ -21,7 +21,7 @@ class Qhatuq_Agent {
 			throw new Qhatuq_Provider_Exception( 'No hay API key configurada para ' . $provider . '.' );
 		}
 		if ( 'gemini' === $provider ) {
-			return new Qhatuq_Provider_Gemini( $key, $model );
+			return new Qhatuq_Provider_Gemini( $key, $model, $web_search );
 		}
 		return new Qhatuq_Provider_Claude( $key, $model, (string) Qhatuq_Settings::get( 'claude_effort' ), $web_search );
 	}
@@ -40,7 +40,7 @@ class Qhatuq_Agent {
 				'token_hash'    => hash( 'sha256', $token ),
 				'provider'      => $provider,
 				'model'         => self::current_model( $provider ),
-				'system_prompt' => Qhatuq_Prompt::build( $web_search ),
+				'system_prompt' => Qhatuq_Prompt::build( $web_search, $provider ),
 				'web_search'    => $web_search,
 				'page_url'      => $page_url,
 				'ip_hash'       => self::ip_hash(),

@@ -9,8 +9,12 @@ defined( 'ABSPATH' ) || exit;
 class Qhatuq_Tools {
 
 	/** Definiciones neutrales (JSON Schema); cada proveedor las adapta a su formato. */
-	public static function definitions(): array {
-		return array(
+	/**
+	 * @param bool $web_verify Agrega verificar_producto (verificación web para Gemini; Claude usa
+	 *                         su herramienta de búsqueda propia).
+	 */
+	public static function definitions( bool $web_verify = false ): array {
+		$tools = array(
 			array(
 				'name'        => 'registrar_lead',
 				'description' => 'Crea o actualiza el registro del cliente potencial de esta conversación para que un representante prepare la cotización. Úsala cada vez que el cliente dé un dato de contacto o un detalle concreto de lo que necesita, enviando siempre todo lo que sabes hasta el momento (los campos vacíos no borran datos anteriores).',
@@ -60,6 +64,22 @@ class Qhatuq_Tools {
 				),
 			),
 		);
+
+		if ( $web_verify ) {
+			$tools[] = array(
+				'name'        => 'verificar_producto',
+				'description' => 'Verifica en internet si una licencia, suscripción de software o equipo de hardware que no está en el catálogo se vende abiertamente en línea en Estados Unidos o Ecuador. Devuelve un veredicto: disponible, no concluyente u otra región.',
+				'schema'      => array(
+					'type'       => 'object',
+					'properties' => array(
+						'producto' => array( 'type' => 'string', 'description' => 'Nombre del producto lo más preciso posible (marca, modelo, edición).' ),
+						'detalle'  => array( 'type' => 'string', 'description' => 'Detalles que dio el cliente (versión, plan, cantidad), si los hay.' ),
+					),
+					'required'   => array( 'producto' ),
+				),
+			);
+		}
+		return $tools;
 	}
 
 	/**
@@ -75,6 +95,12 @@ class Qhatuq_Tools {
 					return array( Qhatuq_Leads::upsert_from_tool( (int) $conversation['id'], $input ), false );
 				case 'consultar_precio_referencial':
 					return array( self::price( (int) ( $input['producto_id'] ?? 0 ) ), false );
+				case 'verificar_producto':
+					if ( empty( $conversation['web_search'] ) ) {
+						return array( 'La verificación web no está disponible. Ofrece que un representante lo confirme.', true );
+					}
+					$result = Qhatuq_Web_Verifier::verify( (string) ( $input['producto'] ?? '' ), (string) ( $input['detalle'] ?? '' ) );
+					return array( Qhatuq_Web_Verifier::as_tool_result( $result ), false );
 			}
 			return array( 'Herramienta desconocida.', true );
 		} catch ( \Throwable $e ) {

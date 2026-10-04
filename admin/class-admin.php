@@ -154,8 +154,8 @@ class Qhatuq_Admin {
 					<tr>
 						<th>Productos fuera del catálogo</th>
 						<td>
-							<label><input type="checkbox" name="<?php echo $f( 'web_search' ); ?>" value="1" <?php checked( $s['web_search'], 1 ); ?>> Verificar en la web si se venden (solo con Claude)</label>
-							<p class="description">Si el cliente pide una licencia, suscripción o equipo que no está en el catálogo ni en "Lo que no ofrecemos", el agente busca si se vende abiertamente en línea en EE. UU. o Ecuador. Si se vende, lo trata como un producto más; si no es concluyente, deriva a un representante. Nunca menciona precios encontrados. Costo: US$10 por cada 1.000 búsquedas (máximo 3 por mensaje). Con Gemini, o con esta opción desactivada, esos casos siempre se derivan a un representante.</p>
+							<label><input type="checkbox" name="<?php echo $f( 'web_search' ); ?>" value="1" <?php checked( $s['web_search'], 1 ); ?>> Verificar en la web si se venden</label>
+							<p class="description">Si el cliente pide una licencia, suscripción o equipo que no está en el catálogo ni en "Lo que no ofrecemos", el agente busca si se vende abiertamente en línea en EE. UU. o Ecuador. Si se vende, lo trata como un producto más; si no es concluyente, deriva a un representante. Nunca menciona precios encontrados. Funciona con ambos proveedores: con Claude usa la búsqueda web de Anthropic (US$10 por cada 1.000 búsquedas, máximo 3 por mensaje); con Gemini hace una consulta aparte con la búsqueda de Google, que se factura según la tarifa de Google. Desactivada, esos casos siempre se derivan a un representante.</p>
 						</td>
 					</tr>
 					<?php self::key_row( 'gemini', 'API key de Gemini', 'aistudio.google.com', $s ); ?>
@@ -309,7 +309,7 @@ class Qhatuq_Admin {
 
 			<h2>Vista previa de las instrucciones</h2>
 			<p class="description">Así recibe el agente la configuración y el catálogo actuales (los precios no se incluyen).</p>
-			<textarea class="large-text code" rows="16" readonly><?php echo esc_textarea( Qhatuq_Prompt::build( Qhatuq_Agent::web_search_enabled( (string) $s['provider'] ) ) ); ?></textarea>
+			<textarea class="large-text code" rows="16" readonly><?php echo esc_textarea( Qhatuq_Prompt::build( Qhatuq_Agent::web_search_enabled( (string) $s['provider'] ), (string) $s['provider'] ) ); ?></textarea>
 		</div>
 		<?php
 	}

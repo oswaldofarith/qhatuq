@@ -15,10 +15,12 @@ class Qhatuq_Provider_Gemini implements Qhatuq_Provider {
 
 	private string $api_key;
 	private string $model;
+	private bool $web_verify;
 
-	public function __construct( string $api_key, string $model ) {
-		$this->api_key = $api_key;
-		$this->model   = $model;
+	public function __construct( string $api_key, string $model, bool $web_verify = false ) {
+		$this->api_key    = $api_key;
+		$this->model      = $model;
+		$this->web_verify = $web_verify;
 	}
 
 	public function id(): string {
@@ -31,7 +33,9 @@ class Qhatuq_Provider_Gemini implements Qhatuq_Provider {
 
 	public function run_turn( string $system, array &$transcript, string $user_text, callable $run_tool ): array {
 		$original = $transcript;
-		$usage    = array( 'input' => 0, 'output' => 0, 'cache_read' => 0 );
+		$usage    = array( 'input' => 0, 'output' => 0, 'cache_read' => 0, 'web_searches' => 0 );
+		$searches = array();
+		Qhatuq_Web_Verifier::take_queries();
 
 		$transcript[] = array(
 			'role'  => 'user',
@@ -76,8 +80,9 @@ class Qhatuq_Provider_Gemini implements Qhatuq_Provider {
 					}
 					$text = trim( $text );
 					return array(
-						'text'  => '' !== $text ? $text : 'Disculpe, ¿podría repetirme su consulta?',
-						'usage' => $usage,
+						'text'     => '' !== $text ? $text : 'Disculpe, ¿podría repetirme su consulta?',
+						'usage'    => $usage,
+						'searches' => $searches,
 					);
 				}
 
@@ -85,6 +90,9 @@ class Qhatuq_Provider_Gemini implements Qhatuq_Provider {
 				foreach ( $calls as $p ) {
 					$call                      = $p['functionCall'];
 					list( $result, $is_error ) = $run_tool( (string) $call['name'], (array) ( $call['args'] ?? array() ) );
+					$queries                   = Qhatuq_Web_Verifier::take_queries();
+					$searches                  = array_merge( $searches, $queries );
+					$usage['web_searches']    += count( $queries );
 					$response                  = array(
 						'name'     => $call['name'],
 						'response' => $is_error ? array( 'error' => $result ) : array( 'result' => $result ),
@@ -110,7 +118,7 @@ class Qhatuq_Provider_Gemini implements Qhatuq_Provider {
 		$body = array(
 			'systemInstruction' => array( 'parts' => array( array( 'text' => $system ) ) ),
 			'contents'          => $transcript,
-			'tools'             => array( array( 'functionDeclarations' => self::tools() ) ),
+			'tools'             => array( array( 'functionDeclarations' => $this->tools() ) ),
 			'generationConfig'  => array( 'maxOutputTokens' => 8192 ),
 		);
 
@@ -138,14 +146,14 @@ class Qhatuq_Provider_Gemini implements Qhatuq_Provider {
 		return $data;
 	}
 
-	private static function tools(): array {
+	private function tools(): array {
 		return array_map(
 			static fn( $t ) => array(
 				'name'        => $t['name'],
 				'description' => $t['description'],
 				'parameters'  => $t['schema'],
 			),
-			Qhatuq_Tools::definitions()
+			Qhatuq_Tools::definitions( $this->web_verify )
 		);
 	}
 
