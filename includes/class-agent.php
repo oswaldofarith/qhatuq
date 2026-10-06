@@ -57,7 +57,7 @@ class Qhatuq_Agent {
 	/**
 	 * @return array{reply:string, ok:bool}
 	 */
-	public static function reply( array $conv, string $message, string $page_url ): array {
+	public static function reply( array $conv, string $message, string $page_url, int $offer_hint = 0 ): array {
 		$conv_id = (int) $conv['id'];
 		Qhatuq_DB::add_message( $conv_id, 'user', $message );
 
@@ -65,7 +65,21 @@ class Qhatuq_Agent {
 		// para no alterar la parte fija de la conversación.
 		$user_text = $message;
 		if ( 0 === (int) $conv['user_messages'] && $page_url ) {
-			$user_text = '[El visitante escribe desde la página: ' . $page_url . "]\n\n" . $message;
+			$context = 'El visitante escribe desde la página: ' . $page_url;
+			$offer   = Qhatuq_Catalog::offer_for_page( (int) url_to_postid( $page_url ), $page_url );
+			if ( ! $offer && $offer_hint ) {
+				// El widget detectó el servicio al cargar la página; se acepta solo si es un producto publicado.
+				$hint  = get_post( $offer_hint );
+				$offer = $hint && Qhatuq_Catalog::OFFER === $hint->post_type && 'publish' === $hint->post_status ? $hint : null;
+			}
+			if ( $offer ) {
+				$context .= sprintf( '. Es la página de «%s» (id %d del catálogo): probablemente le interesa ese servicio; oriéntalo hacia él sin dejar de atender lo que pregunte', $offer->post_title, $offer->ID );
+				$ctx      = Qhatuq_Catalog::offer_context( $offer->ID );
+				if ( '' !== $ctx['greeting'] ) {
+					$context .= '. Ya vio este saludo en el chat: «' . $ctx['greeting'] . '»';
+				}
+			}
+			$user_text = '[' . $context . "]\n\n" . $message;
 		}
 
 		$transcript = json_decode( (string) $conv['transcript'], true );

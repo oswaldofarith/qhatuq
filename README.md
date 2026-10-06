@@ -6,6 +6,7 @@
 - **Sabe lo que no ofrecen.** Para cada caso usted define qué hacer: decir que no con amabilidad (opción por defecto), ofrecer una alternativa o recomendar a un socio de negocio.
 - **Respeta prohibiciones configurables.** Por ejemplo: no ofrecer descuentos, no comprometer plazos, no hablar de la competencia.
 - **No da precios.** Si el cliente insiste y el producto tiene un precio referencial autorizado, responde "el precio empieza alrededor de…" y lo remite a un representante.
+- **Saludo según la página.** Cada producto o servicio puede tener páginas asociadas (elegidas de la lista o por partes de la dirección, como `/telefonia-ip`) con su propio saludo y sugerencias rápidas. En esas páginas el chat se abre con ese saludo y el agente sabe qué servicio está mirando el visitante.
 - **Verifica productos fuera del catálogo** (con Claude o Gemini). Si piden una licencia, suscripción o equipo que no está en el catálogo ni en "Lo que no ofrecemos", el agente busca en la web si se vende abiertamente en EE. UU. o Ecuador:
   - **Si se vende:** lo trata como un producto más y pasa a cotizar.
   - **Si no es concluyente:** con sus propias palabras ofrece que alguien del equipo lo confirme.

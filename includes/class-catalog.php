@@ -90,6 +90,7 @@ class Qhatuq_Catalog {
 
 	public static function add_meta_boxes(): void {
 		add_meta_box( 'qhatuq_offer_meta', 'Datos para el agente', array( __CLASS__, 'render_offer_box' ), self::OFFER, 'normal', 'high' );
+		add_meta_box( 'qhatuq_offer_pages', 'Saludo en las páginas de este servicio', array( __CLASS__, 'render_pages_box' ), self::OFFER, 'normal', 'default' );
 		add_meta_box( 'qhatuq_exclusion_meta', 'Qué debe hacer el agente', array( __CLASS__, 'render_exclusion_box' ), self::EXCLUSION, 'normal', 'high' );
 	}
 
@@ -139,6 +140,45 @@ class Qhatuq_Catalog {
 		<?php
 	}
 
+	public static function render_pages_box( WP_Post $post ): void {
+		$c     = self::offer_context( $post->ID );
+		$pages = get_pages( array( 'sort_column' => 'menu_order,post_title', 'post_status' => array( 'publish', 'private' ) ) );
+		?>
+		<p class="description">Cuando el visitante abra el chat en una de estas páginas, verá este saludo y estas sugerencias, y el agente sabrá que está mirando este servicio. Si se deja vacío, se usan el saludo y las sugerencias generales.</p>
+		<table class="form-table" role="presentation">
+			<tr>
+				<th><label for="qhatuq_page_ids">Páginas del sitio</label></th>
+				<td>
+					<select name="qhatuq_ctx[page_ids][]" id="qhatuq_page_ids" multiple size="6" style="min-width:320px">
+						<?php foreach ( $pages as $page ) : ?>
+							<option value="<?php echo (int) $page->ID; ?>" <?php selected( in_array( (int) $page->ID, $c['page_ids'], true ) ); ?>><?php echo esc_html( str_repeat( '— ', count( get_post_ancestors( $page ) ) ) . $page->post_title ); ?></option>
+						<?php endforeach; ?>
+					</select>
+					<p class="description">Mantenga presionado Ctrl (Cmd en Mac) para elegir varias.</p>
+				</td>
+			</tr>
+			<tr>
+				<th><label for="qhatuq_url_match">O direcciones que contengan</label></th>
+				<td>
+					<textarea class="large-text code" rows="2" name="qhatuq_ctx[url_match]" id="qhatuq_url_match" placeholder="/telefonia-ip&#10;/servicios/centrales/*"><?php echo esc_textarea( $c['url_match'] ); ?></textarea>
+					<p class="description">Una por línea. Útil para entradas, portafolio o páginas del tema que no aparecen en la lista. Se puede usar * como comodín.</p>
+				</td>
+			</tr>
+			<tr>
+				<th><label for="qhatuq_ctx_greeting">Saludo</label></th>
+				<td><input type="text" class="large-text" name="qhatuq_ctx[greeting]" id="qhatuq_ctx_greeting" value="<?php echo esc_attr( $c['greeting'] ); ?>" placeholder="¡Hola! ¿Está evaluando una central telefónica IP para su institución? Con gusto le oriento."></td>
+			</tr>
+			<tr>
+				<th><label for="qhatuq_ctx_suggestions">Sugerencias rápidas</label></th>
+				<td>
+					<textarea class="large-text" rows="4" name="qhatuq_ctx[suggestions]" id="qhatuq_ctx_suggestions" placeholder="¿Cuántas extensiones necesito?&#10;¿Funciona con mis teléfonos actuales?&#10;Quiero una cotización"><?php echo esc_textarea( $c['suggestions'] ); ?></textarea>
+					<p class="description">Una por línea, máximo 6.</p>
+				</td>
+			</tr>
+		</table>
+		<?php
+	}
+
 	public static function render_exclusion_box( WP_Post $post ): void {
 		wp_nonce_field( 'qhatuq_exclusion', 'qhatuq_exclusion_nonce' );
 		$m = self::exclusion_meta( $post->ID );
@@ -180,6 +220,9 @@ class Qhatuq_Catalog {
 			update_post_meta( $post_id, '_qhatuq_' . $k, sanitize_textarea_field( $in[ $k ] ?? '' ) );
 		}
 		update_post_meta( $post_id, '_qhatuq_price_allowed', empty( $in['price_allowed'] ) ? '0' : '1' );
+
+		$ctx = wp_unslash( $_POST['qhatuq_ctx'] ?? array() ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
+		self::save_context( $post_id, is_array( $ctx ) ? $ctx : array() );
 	}
 
 	public static function save_exclusion( int $post_id ): void {
@@ -212,6 +255,62 @@ class Qhatuq_Catalog {
 		}
 		$m['kind'] = $m['kind'] ? $m['kind'] : 'servicio';
 		return $m;
+	}
+
+	/** Páginas, saludo y sugerencias propios del producto o servicio. */
+	public static function offer_context( int $post_id ): array {
+		$ids = get_post_meta( $post_id, '_qhatuq_page_ids', true );
+		return array(
+			'page_ids'    => is_array( $ids ) ? array_map( 'intval', $ids ) : array(),
+			'url_match'   => (string) get_post_meta( $post_id, '_qhatuq_url_match', true ),
+			'greeting'    => (string) get_post_meta( $post_id, '_qhatuq_greeting', true ),
+			'suggestions' => (string) get_post_meta( $post_id, '_qhatuq_suggestions', true ),
+		);
+	}
+
+	public static function save_context( int $post_id, array $ctx ): void {
+		$ids = array_values( array_filter( array_map( 'absint', (array) ( $ctx['page_ids'] ?? array() ) ) ) );
+		update_post_meta( $post_id, '_qhatuq_page_ids', $ids );
+		$patterns = array_filter( array_map( 'trim', explode( "\n", sanitize_textarea_field( (string) ( $ctx['url_match'] ?? '' ) ) ) ) );
+		update_post_meta( $post_id, '_qhatuq_url_match', implode( "\n", array_slice( $patterns, 0, 20 ) ) );
+		update_post_meta( $post_id, '_qhatuq_greeting', sanitize_text_field( (string) ( $ctx['greeting'] ?? '' ) ) );
+		$sugg = array_filter( array_map( 'trim', explode( "\n", sanitize_textarea_field( (string) ( $ctx['suggestions'] ?? '' ) ) ) ) );
+		update_post_meta( $post_id, '_qhatuq_suggestions', implode( "\n", array_slice( $sugg, 0, 6 ) ) );
+	}
+
+	/**
+	 * Producto o servicio asociado a una página: por las páginas elegidas o por las
+	 * direcciones configuradas. Gana el primero según el orden del catálogo.
+	 */
+	public static function offer_for_page( int $page_id, string $url ): ?WP_Post {
+		$path = (string) wp_parse_url( $url, PHP_URL_PATH );
+		$path = '/' . trim( rawurldecode( $path ), '/' );
+		foreach ( self::offers() as $post ) {
+			$c = self::offer_context( $post->ID );
+			if ( $page_id && in_array( $page_id, $c['page_ids'], true ) ) {
+				return $post;
+			}
+			foreach ( array_filter( array_map( 'trim', explode( "\n", $c['url_match'] ) ) ) as $pattern ) {
+				if ( self::path_matches( $path, $pattern ) ) {
+					return $post;
+				}
+			}
+		}
+		return null;
+	}
+
+	public static function path_matches( string $path, string $pattern ): bool {
+		$pattern = (string) wp_parse_url( $pattern, PHP_URL_PATH ) ?: $pattern;
+		$pattern = '/' . trim( $pattern, '/' );
+		if ( '/' === $pattern ) {
+			return '/' === $path;
+		}
+		if ( false !== strpos( $pattern, '*' ) ) {
+			$regex = '#' . str_replace( '\\*', '.*', preg_quote( $pattern, '#' ) ) . '#i';
+			return (bool) preg_match( $regex, $path );
+		}
+		// Coincide con el segmento completo: "/telefonia-ip" vale para "/telefonia-ip/planes", no para "/telefonia-ipx".
+		return false !== stripos( $path . '/', rtrim( $pattern, '/' ) . '/' );
 	}
 
 	public static function exclusion_meta( int $post_id ): array {
@@ -254,6 +353,7 @@ class Qhatuq_Catalog {
 		unset( $cols['date'] );
 		$cols['qhatuq_kind']  = 'Tipo';
 		$cols['qhatuq_price'] = 'Precio referencial';
+		$cols['qhatuq_pages'] = 'Saludo propio';
 		if ( $date ) {
 			$cols['date'] = $date;
 		}
@@ -264,6 +364,10 @@ class Qhatuq_Catalog {
 		$m = self::offer_meta( $post_id );
 		if ( 'qhatuq_kind' === $col ) {
 			echo esc_html( ucfirst( $m['kind'] ) . ( $m['category'] ? ' · ' . $m['category'] : '' ) );
+		} elseif ( 'qhatuq_pages' === $col ) {
+			$c = self::offer_context( $post_id );
+			$n = count( $c['page_ids'] ) + count( array_filter( explode( "\n", $c['url_match'] ) ) );
+			echo $n && ( $c['greeting'] || $c['suggestions'] ) ? esc_html( sprintf( 'Sí (%d página(s) o dirección(es))', $n ) ) : '—';
 		} elseif ( 'qhatuq_price' === $col ) {
 			if ( '' === $m['price_from'] ) {
 				echo '—';

@@ -34,6 +34,7 @@ class Qhatuq_Rest {
 					'conversation_id' => array( 'type' => array( 'string', 'null' ) ),
 					'token'           => array( 'type' => array( 'string', 'null' ) ),
 					'page_url'        => array( 'type' => array( 'string', 'null' ) ),
+					'context_offer'   => array( 'type' => array( 'integer', 'null' ) ),
 				),
 			)
 		);
@@ -92,7 +93,7 @@ class Qhatuq_Rest {
 		set_transient( $lock, 1, 120 );
 
 		try {
-			$result = Qhatuq_Agent::reply( $conv, $message, $page_url );
+			$result = Qhatuq_Agent::reply( $conv, $message, $page_url, absint( $req->get_param( 'context_offer' ) ) );
 		} finally {
 			delete_transient( $lock );
 		}

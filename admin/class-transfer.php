@@ -74,11 +74,27 @@ class Qhatuq_Transfer {
 
 		$offers = array();
 		foreach ( Qhatuq_Catalog::offers() as $post ) {
+			// Las páginas elegidas se exportan como direcciones: los ID cambian entre sitios.
+			$ctx      = Qhatuq_Catalog::offer_context( $post->ID );
+			$patterns = array_filter( array_map( 'trim', explode( "\n", $ctx['url_match'] ) ) );
+			foreach ( $ctx['page_ids'] as $page_id ) {
+				// Ruta según el nombre de la página (y sus páginas madre), p. ej. /servicios/telefonia-ip.
+				$uri  = get_post( $page_id ) ? get_page_uri( $page_id ) : '';
+				$path = $uri ? '/' . trim( $uri, '/' ) : '';
+				if ( $path && '/' !== $path && ! in_array( $path, $patterns, true ) ) {
+					$patterns[] = $path;
+				}
+			}
 			$offers[] = array(
 				'title'      => $post->post_title,
 				'content'    => $post->post_content,
 				'menu_order' => (int) $post->menu_order,
 				'meta'       => Qhatuq_Catalog::offer_meta( $post->ID ),
+				'context'    => array(
+					'url_match'   => implode( "\n", $patterns ),
+					'greeting'    => $ctx['greeting'],
+					'suggestions' => $ctx['suggestions'],
+				),
 			);
 		}
 		$exclusions = array();
@@ -184,6 +200,11 @@ class Qhatuq_Transfer {
 					'price_from'    => sanitize_text_field( (string) ( $meta['price_from'] ?? '' ) ),
 					'price_unit'    => sanitize_text_field( (string) ( $meta['price_unit'] ?? '' ) ),
 					'price_allowed' => empty( $meta['price_allowed'] ) ? '0' : '1',
+				),
+				'context'    => array(
+					'url_match'   => sanitize_textarea_field( (string) ( $o['context']['url_match'] ?? '' ) ),
+					'greeting'    => sanitize_text_field( (string) ( $o['context']['greeting'] ?? '' ) ),
+					'suggestions' => sanitize_textarea_field( (string) ( $o['context']['suggestions'] ?? '' ) ),
 				),
 			);
 		}
@@ -339,6 +360,10 @@ class Qhatuq_Transfer {
 			}
 			foreach ( $item['meta'] as $k => $v ) {
 				update_post_meta( $id, '_qhatuq_' . $k, $v );
+			}
+			if ( isset( $item['context'] ) ) {
+				// Se conservan las páginas elegidas en este sitio; las del archivo llegan como direcciones.
+				Qhatuq_Catalog::save_context( $id, array( 'page_ids' => Qhatuq_Catalog::offer_context( $id )['page_ids'] ) + $item['context'] );
 			}
 			$seen[] = (int) $id;
 		}

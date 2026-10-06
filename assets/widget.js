@@ -375,6 +375,9 @@
 		typing(true);
 
 		var body = { message: text, page_url: window.location.href };
+		if (cfg.offerId) {
+			body.context_offer = cfg.offerId;
+		}
 		if (state.id && state.token) {
 			body.conversation_id = state.id;
 			body.token = state.token;
