@@ -132,12 +132,60 @@ class Qhatuq_Leads {
 
 		$temp    = self::TEMPERATURES[ $lead['temperature'] ] ?? $lead['temperature'];
 		$subject = sprintf( '[%s] Nuevo lead (%s): %s', get_bloginfo( 'name' ), $temp, $lead['company'] ? $lead['company'] : $lead['name'] );
+		$wa      = self::whatsapp_url( $lead );
 		$body    = "Hay un nuevo cliente potencial registrado por el asistente del sitio.\n\n" . self::as_text( $lead ) .
+			( $wa ? "\n\nEscribirle por WhatsApp: " . $wa : '' ) .
 			"\n\nVer en el panel: " . admin_url( 'admin.php?page=qhatuq-leads&lead=' . (int) $lead['id'] );
 
 		if ( wp_mail( $to, $subject, $body ) ) {
 			Qhatuq_DB::update_lead( (int) $lead['id'], array( 'notified_at' => Qhatuq_DB::now() ) );
 		}
+	}
+
+	/**
+	 * Número en formato internacional para WhatsApp, o '' si no parece un celular.
+	 * Ecuador: 09XXXXXXXX → 5939XXXXXXXX; los fijos (02…07) no tienen WhatsApp.
+	 */
+	public static function whatsapp_number( string $phone ): string {
+		$raw    = trim( $phone );
+		$digits = preg_replace( '/\D/', '', $raw );
+		if ( '' === $digits ) {
+			return '';
+		}
+		$cc = (string) Qhatuq_Settings::get( 'whatsapp_country' );
+		if ( str_starts_with( $raw, '+' ) || str_starts_with( $digits, '00' ) ) {
+			$digits = ltrim( $digits, '0' ); // Ya viene con código de país.
+		} elseif ( str_starts_with( $digits, '0' ) ) {
+			$digits = $cc . substr( $digits, 1 ); // Número nacional con 0 inicial.
+		} elseif ( ! str_starts_with( $digits, $cc ) ) {
+			$digits = $cc . $digits; // Número nacional sin 0 (ej. 991234567).
+		}
+		if ( strlen( $digits ) < 10 || strlen( $digits ) > 15 ) {
+			return '';
+		}
+		// En Ecuador solo los celulares (9…) usan WhatsApp.
+		if ( str_starts_with( $digits, '593' ) && ( '9' !== ( $digits[3] ?? '' ) || 12 !== strlen( $digits ) ) ) {
+			return '';
+		}
+		return $digits;
+	}
+
+	public static function whatsapp_url( array $lead ): string {
+		$number = self::whatsapp_number( (string) ( $lead['phone'] ?? '' ) );
+		if ( '' === $number ) {
+			return '';
+		}
+		$first   = trim( strtok( (string) $lead['name'], ' ' ) ?: '' );
+		$message = strtr(
+			(string) Qhatuq_Settings::get( 'whatsapp_message' ),
+			array(
+				'{nombre}'  => $first,
+				'{sitio}'   => get_bloginfo( 'name' ),
+				'{empresa}' => (string) $lead['company'],
+			)
+		);
+		$message = trim( preg_replace( '/\s+([,.])/', '$1', preg_replace( '/ {2,}/', ' ', $message ) ) );
+		return 'https://wa.me/' . $number . ( '' !== $message ? '?text=' . rawurlencode( $message ) : '' );
 	}
 
 	public static function items_text( array $lead ): string {

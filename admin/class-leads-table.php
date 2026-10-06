@@ -23,6 +23,7 @@ class Qhatuq_Leads_Table extends WP_List_Table {
 
 	public function get_columns() {
 		return array(
+			'cb'          => '<input type="checkbox">',
 			'name'        => 'Contacto',
 			'company'     => 'Empresa',
 			'items'       => 'Necesidad',
@@ -97,15 +98,33 @@ class Qhatuq_Leads_Table extends WP_List_Table {
 		);
 	}
 
+	protected function get_bulk_actions() {
+		return array(
+			'qhatuq_delete'      => 'Eliminar',
+			'qhatuq_delete_all'  => 'Eliminar con su conversación',
+		);
+	}
+
+	protected function column_cb( $item ) {
+		return '<input type="checkbox" name="ids[]" value="' . (int) $item['id'] . '">';
+	}
+
 	protected function column_name( $item ) {
 		$url  = admin_url( 'admin.php?page=qhatuq-leads&lead=' . (int) $item['id'] );
 		$name = '' !== $item['name'] ? $item['name'] : '(sin nombre)';
 		$out  = '<strong><a href="' . esc_url( $url ) . '">' . esc_html( $name ) . '</a></strong>';
-		$sub  = array_filter( array( $item['phone'], $item['email'] ) );
-		if ( $sub ) {
-			$out .= '<br><span class="description">' . esc_html( implode( ' · ', $sub ) ) . '</span>';
+		if ( '' !== $item['phone'] || '' !== $item['email'] ) {
+			$out .= '<br><span class="description">';
+			$out .= esc_html( $item['phone'] );
+			$out .= Qhatuq_Admin::whatsapp_link( $item );
+			$out .= ( '' !== $item['phone'] && '' !== $item['email'] ? ' · ' : '' ) . esc_html( $item['email'] );
+			$out .= '</span>';
 		}
-		return $out;
+		$actions = array(
+			'view'   => '<a href="' . esc_url( $url ) . '">Ver</a>',
+			'delete' => Qhatuq_Admin::delete_link( 'lead', (int) $item['id'], 'Eliminar' ),
+		);
+		return $out . $this->row_actions( $actions );
 	}
 
 	protected function column_items( $item ) {

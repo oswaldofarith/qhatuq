@@ -227,6 +227,39 @@ class Qhatuq_DB {
 		return $wpdb->get_results( $wpdb->prepare( "SELECT role, content, created_at FROM {$t} WHERE conversation_id = %d ORDER BY id ASC", $conversation_id ), ARRAY_A );
 	}
 
+	/**
+	 * Elimina conversaciones con sus mensajes. Con $with_leads también borra sus leads;
+	 * si no, los leads se conservan (quedan sin conversación asociada).
+	 */
+	public static function delete_conversations( array $ids, bool $with_leads = false ): int {
+		global $wpdb;
+		$ids = array_filter( array_map( 'absint', $ids ) );
+		if ( ! $ids ) {
+			return 0;
+		}
+		$in = implode( ',', $ids );
+		$wpdb->query( 'DELETE FROM ' . self::table( 'messages' ) . " WHERE conversation_id IN ({$in})" );
+		if ( $with_leads ) {
+			$wpdb->query( 'DELETE FROM ' . self::table( 'leads' ) . " WHERE conversation_id IN ({$in})" );
+		}
+		return (int) $wpdb->query( 'DELETE FROM ' . self::table( 'conversations' ) . " WHERE id IN ({$in})" );
+	}
+
+	/** Elimina leads. Con $with_conversations también borra sus conversaciones y mensajes. */
+	public static function delete_leads( array $ids, bool $with_conversations = false ): int {
+		global $wpdb;
+		$ids = array_filter( array_map( 'absint', $ids ) );
+		if ( ! $ids ) {
+			return 0;
+		}
+		$in = implode( ',', $ids );
+		if ( $with_conversations ) {
+			$conv_ids = $wpdb->get_col( 'SELECT conversation_id FROM ' . self::table( 'leads' ) . " WHERE id IN ({$in}) AND conversation_id > 0" );
+			self::delete_conversations( $conv_ids );
+		}
+		return (int) $wpdb->query( 'DELETE FROM ' . self::table( 'leads' ) . " WHERE id IN ({$in})" );
+	}
+
 	/* ---------------------------------------------------------------- Leads */
 
 	public static function get_lead_by_conversation( int $conversation_id ): ?array {

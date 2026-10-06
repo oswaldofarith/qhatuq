@@ -23,6 +23,7 @@ class Qhatuq_Conversations_Table extends WP_List_Table {
 
 	public function get_columns() {
 		return array(
+			'cb'            => '<input type="checkbox">',
 			'created_at'    => 'Inicio',
 			'first_message' => 'Primer mensaje',
 			'user_messages' => 'Mensajes',
@@ -63,9 +64,24 @@ class Qhatuq_Conversations_Table extends WP_List_Table {
 		);
 	}
 
+	protected function get_bulk_actions() {
+		return array(
+			'qhatuq_delete'     => 'Eliminar',
+			'qhatuq_delete_all' => 'Eliminar con su lead',
+		);
+	}
+
+	protected function column_cb( $item ) {
+		return '<input type="checkbox" name="ids[]" value="' . (int) $item['id'] . '">';
+	}
+
 	protected function column_created_at( $item ) {
-		$url = admin_url( 'admin.php?page=qhatuq-conversations&conversation=' . (int) $item['id'] );
-		return '<a href="' . esc_url( $url ) . '"><strong>' . esc_html( get_date_from_gmt( $item['created_at'], 'd/m/Y H:i' ) ) . '</strong></a>';
+		$url     = admin_url( 'admin.php?page=qhatuq-conversations&conversation=' . (int) $item['id'] );
+		$actions = array(
+			'view'   => '<a href="' . esc_url( $url ) . '">Ver</a>',
+			'delete' => Qhatuq_Admin::delete_link( 'conversation', (int) $item['id'], 'Eliminar' ),
+		);
+		return '<a href="' . esc_url( $url ) . '"><strong>' . esc_html( get_date_from_gmt( $item['created_at'], 'd/m/Y H:i' ) ) . '</strong></a>' . $this->row_actions( $actions );
 	}
 
 	protected function column_first_message( $item ) {

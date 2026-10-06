@@ -54,6 +54,8 @@ class Qhatuq_Settings {
 			'extra_instructions'   => '',
 
 			'notify_emails'        => get_option( 'admin_email' ),
+			'whatsapp_country'     => '593',
+			'whatsapp_message'     => 'Hola {nombre}, le saluda {sitio}. Le escribo por la consulta que nos hizo en nuestro sitio web.',
 			'privacy_url'          => function_exists( 'get_privacy_policy_url' ) ? get_privacy_policy_url() : '',
 			'privacy_notice'       => 'Este chat es atendido por un asistente de inteligencia artificial. Si comparte sus datos, los usaremos solo para atender su solicitud.',
 
@@ -153,6 +155,9 @@ class Qhatuq_Settings {
 		$emails = array_filter( array_map( 'sanitize_email', array_map( 'trim', explode( ',', (string) ( $input['notify_emails'] ?? '' ) ) ) ) );
 		$out['notify_emails'] = implode( ', ', $emails );
 		$out['privacy_url']   = esc_url_raw( $input['privacy_url'] ?? '' );
+		$cc                   = preg_replace( '/\D/', '', (string) ( $input['whatsapp_country'] ?? '' ) );
+		$out['whatsapp_country'] = $cc ? substr( $cc, 0, 4 ) : '593';
+		$out['whatsapp_message'] = sanitize_textarea_field( $input['whatsapp_message'] ?? '' );
 
 		$color                  = sanitize_hex_color( $input['widget_color'] ?? '' );
 		$out['widget_color']    = $color ? $color : $defaults['widget_color'];

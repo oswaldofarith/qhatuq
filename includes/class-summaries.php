@@ -333,6 +333,10 @@ class Qhatuq_Summaries {
 			$body[] = '';
 			$body[] = '— Lead registrado —';
 			$body[] = Qhatuq_Leads::as_text( $lead );
+			$wa = Qhatuq_Leads::whatsapp_url( $lead );
+			if ( $wa ) {
+				$body[] = 'Escribirle por WhatsApp: ' . $wa;
+			}
 			$body[] = 'Ver lead: ' . admin_url( 'admin.php?page=qhatuq-leads&lead=' . (int) $lead['id'] );
 		}
 		$body[] = '';

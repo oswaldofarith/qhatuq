@@ -15,6 +15,9 @@ class Qhatuq_Admin {
 		add_action( 'admin_post_qhatuq_lead_update', array( __CLASS__, 'handle_lead_update' ) );
 		add_action( 'admin_post_qhatuq_leads_csv', array( __CLASS__, 'handle_csv' ) );
 		add_action( 'admin_post_qhatuq_test', array( __CLASS__, 'handle_test' ) );
+		add_action( 'admin_post_qhatuq_delete', array( __CLASS__, 'handle_delete' ) );
+		add_action( 'admin_init', array( __CLASS__, 'handle_bulk' ) );
+		add_action( 'admin_footer', array( __CLASS__, 'confirm_script' ) );
 		add_action( 'admin_notices', array( __CLASS__, 'notices' ) );
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'assets' ) );
 	}
@@ -242,6 +245,24 @@ class Qhatuq_Admin {
 					</tr>
 				</table>
 
+				<h2 class="title">WhatsApp</h2>
+				<table class="form-table" role="presentation">
+					<tr>
+						<th><label for="qhatuq-wa-cc">Código de país por defecto</label></th>
+						<td>
+							+<input type="text" id="qhatuq-wa-cc" name="<?php echo $f( 'whatsapp_country' ); ?>" value="<?php echo esc_attr( $s['whatsapp_country'] ); ?>" style="width:70px">
+							<p class="description">Se usa para los teléfonos escritos sin código de país (en Ecuador, 593: 0991234567 → +593 99 123 4567). Los teléfonos fijos no muestran el ícono de WhatsApp.</p>
+						</td>
+					</tr>
+					<tr>
+						<th><label for="qhatuq-wa-msg">Mensaje inicial</label></th>
+						<td>
+							<textarea id="qhatuq-wa-msg" class="large-text" rows="2" name="<?php echo $f( 'whatsapp_message' ); ?>"><?php echo esc_textarea( $s['whatsapp_message'] ); ?></textarea>
+							<p class="description">Texto que aparece escrito al abrir WhatsApp; puede editarse antes de enviar. Variables: {nombre} (primer nombre del cliente), {empresa} (su institución) y {sitio} (el nombre de este sitio). Déjelo vacío para abrir el chat sin texto.</p>
+						</td>
+					</tr>
+				</table>
+
 				<h2 class="title">Resúmenes por correo</h2>
 				<table class="form-table" role="presentation">
 					<tr>
@@ -390,6 +411,111 @@ class Qhatuq_Admin {
 		exit;
 	}
 
+	/* ---------------------------------------------------------------- WhatsApp y eliminación */
+
+	/** Ícono que abre WhatsApp en una pestaña nueva, si el teléfono parece un celular. */
+	public static function whatsapp_link( array $lead, bool $with_label = false ): string {
+		$url = Qhatuq_Leads::whatsapp_url( $lead );
+		if ( '' === $url ) {
+			return '';
+		}
+		$icon = '<svg viewBox="0 0 32 32" width="16" height="16" aria-hidden="true" style="vertical-align:-3px"><path fill="#25D366" d="M16 3C9 3 3.3 8.7 3.3 15.7c0 2.5.7 4.9 2 7L3 29l6.5-2.1c2 1.1 4.2 1.7 6.5 1.7 7 0 12.7-5.7 12.7-12.7S23 3 16 3z"/><path fill="#fff" d="M23.2 19.3c-.3-.2-1.9-.9-2.2-1-.3-.1-.5-.2-.7.2-.2.3-.8 1-1 1.2-.2.2-.4.2-.7.1-.3-.2-1.4-.5-2.6-1.6-1-.9-1.6-1.9-1.8-2.2-.2-.3 0-.5.1-.7l.5-.6c.2-.2.2-.4.3-.6.1-.2 0-.4 0-.6l-1-2.4c-.3-.6-.5-.5-.7-.5h-.6c-.2 0-.6.1-.9.4-.3.3-1.2 1.2-1.2 2.9s1.2 3.3 1.4 3.6c.2.2 2.4 3.7 5.8 5.1 2.9 1.1 3.5.9 4.1.8.6-.1 1.9-.8 2.2-1.5.3-.8.3-1.4.2-1.5-.1-.2-.3-.3-.6-.4z"/></svg>';
+		$label = $with_label ? ' <span>Escribir por WhatsApp</span>' : '';
+		return ' <a href="' . esc_url( $url ) . '" target="_blank" rel="noopener" title="Abrir conversación en WhatsApp" aria-label="Abrir conversación en WhatsApp" style="text-decoration:none;margin-left:4px">' . $icon . $label . '</a>';
+	}
+
+	/** Enlace de eliminación con nonce; la confirmación la pide confirm_script(). */
+	public static function delete_link( string $type, int $id, string $label, bool $with_related = false, string $class = 'qhatuq-delete' ): string {
+		$url = wp_nonce_url(
+			add_query_arg(
+				array(
+					'action' => 'qhatuq_delete',
+					'type'   => $type,
+					'id'     => $id,
+					'with'   => $with_related ? 1 : 0,
+				),
+				admin_url( 'admin-post.php' )
+			),
+			'qhatuq_delete_' . $type . '_' . $id
+		);
+		$question = 'lead' === $type
+			? ( $with_related ? '¿Eliminar este lead y su conversación? No se puede deshacer.' : '¿Eliminar este lead? La conversación se conserva. No se puede deshacer.' )
+			: ( $with_related ? '¿Eliminar esta conversación y su lead? No se puede deshacer.' : '¿Eliminar esta conversación? El lead, si existe, se conserva. No se puede deshacer.' );
+		return '<a href="' . esc_url( $url ) . '" class="' . esc_attr( $class ) . '" data-confirm="' . esc_attr( $question ) . '" style="color:#b32d2e">' . esc_html( $label ) . '</a>';
+	}
+
+	public static function handle_delete(): void {
+		$type = sanitize_key( wp_unslash( $_GET['type'] ?? '' ) );
+		$id   = absint( $_GET['id'] ?? 0 );
+		$with = ! empty( $_GET['with'] );
+		if ( ! current_user_can( self::CAP ) || ! in_array( $type, array( 'lead', 'conversation' ), true ) || ! check_admin_referer( 'qhatuq_delete_' . $type . '_' . $id ) ) {
+			wp_die( 'No autorizado.' );
+		}
+		if ( 'lead' === $type ) {
+			Qhatuq_DB::delete_leads( array( $id ), $with );
+			$msg  = $with ? 'Lead y conversación eliminados.' : 'Lead eliminado.';
+			$page = 'qhatuq-leads';
+		} else {
+			Qhatuq_DB::delete_conversations( array( $id ), $with );
+			$msg  = $with ? 'Conversación y lead eliminados.' : 'Conversación eliminada.';
+			$page = 'qhatuq-conversations';
+		}
+		wp_safe_redirect( add_query_arg( array( 'qhatuq_msg' => rawurlencode( $msg ), 'qhatuq_ok' => 1 ), admin_url( 'admin.php?page=' . $page ) ) );
+		exit;
+	}
+
+	/** Acciones en lote de los listados (se procesan antes de imprimir la página para poder redirigir). */
+	public static function handle_bulk(): void {
+		$page = sanitize_key( $_REQUEST['page'] ?? '' ); // phpcs:ignore WordPress.Security.NonceVerification
+		if ( ! in_array( $page, array( 'qhatuq-leads', 'qhatuq-conversations' ), true ) ) {
+			return;
+		}
+		$action = sanitize_key( $_REQUEST['action'] ?? '' ); // phpcs:ignore WordPress.Security.NonceVerification
+		if ( ! in_array( $action, array( 'qhatuq_delete', 'qhatuq_delete_all' ), true ) ) {
+			$action = sanitize_key( $_REQUEST['action2'] ?? '' ); // phpcs:ignore WordPress.Security.NonceVerification
+		}
+		if ( ! in_array( $action, array( 'qhatuq_delete', 'qhatuq_delete_all' ), true ) ) {
+			return;
+		}
+		check_admin_referer( 'qhatuq-leads' === $page ? 'bulk-leads' : 'bulk-conversaciones' );
+		if ( ! current_user_can( self::CAP ) ) {
+			wp_die( 'No autorizado.' );
+		}
+		$ids  = array_map( 'absint', (array) ( $_REQUEST['ids'] ?? array() ) );
+		$with = 'qhatuq_delete_all' === $action;
+		$n    = 'qhatuq-leads' === $page ? Qhatuq_DB::delete_leads( $ids, $with ) : Qhatuq_DB::delete_conversations( $ids, $with );
+		$msg  = $n ? sprintf( 'Elementos eliminados: %d.', $n ) : 'No se seleccionó ningún elemento.';
+		wp_safe_redirect( add_query_arg( array( 'qhatuq_msg' => rawurlencode( $msg ), 'qhatuq_ok' => $n ? 1 : 0 ), admin_url( 'admin.php?page=' . $page ) ) );
+		exit;
+	}
+
+	/** Pide confirmación antes de eliminar (enlaces y acciones en lote). */
+	public static function confirm_script(): void {
+		$page = sanitize_key( $_GET['page'] ?? '' ); // phpcs:ignore WordPress.Security.NonceVerification
+		if ( ! in_array( $page, array( 'qhatuq-leads', 'qhatuq-conversations' ), true ) ) {
+			return;
+		}
+		?>
+		<script>
+		document.addEventListener('click', function (e) {
+			var a = e.target.closest('a[data-confirm]');
+			if (a && !window.confirm(a.getAttribute('data-confirm'))) { e.preventDefault(); }
+		});
+		document.addEventListener('submit', function (e) {
+			var f = e.target;
+			var sel = f.querySelector('select[name="action"]');
+			var sel2 = f.querySelector('select[name="action2"]');
+			var act = (sel && sel.value !== '-1' && sel.value) || (sel2 && sel2.value !== '-1' && sel2.value) || '';
+			if (act.indexOf('qhatuq_delete') !== 0) { return; }
+			var n = f.querySelectorAll('input[name="ids[]"]:checked').length;
+			if (!n) { return; }
+			var extra = act === 'qhatuq_delete_all' ? ' junto con sus datos relacionados' : '';
+			if (!window.confirm('¿Eliminar ' + n + ' elemento(s)' + extra + '? No se puede deshacer.')) { e.preventDefault(); }
+		});
+		</script>
+		<?php
+	}
+
 	/* ---------------------------------------------------------------- Leads */
 
 	public static function page_leads(): void {
@@ -424,14 +550,20 @@ class Qhatuq_Admin {
 		?>
 		<div class="wrap">
 			<h1>Lead #<?php echo (int) $lead['id']; ?> <?php echo esc_html( $lead['company'] ? '· ' . $lead['company'] : '' ); ?></h1>
-			<p><a href="<?php echo esc_url( admin_url( 'admin.php?page=qhatuq-leads' ) ); ?>">&larr; Volver a leads</a></p>
+			<p>
+				<a href="<?php echo esc_url( admin_url( 'admin.php?page=qhatuq-leads' ) ); ?>">&larr; Volver a leads</a>
+				&nbsp;|&nbsp; <?php echo self::delete_link( 'lead', (int) $lead['id'], 'Eliminar lead' ); // phpcs:ignore WordPress.Security.EscapeOutput ?>
+				<?php if ( (int) $lead['conversation_id'] ) : ?>
+					&nbsp;|&nbsp; <?php echo self::delete_link( 'lead', (int) $lead['id'], 'Eliminar lead y conversación', true ); // phpcs:ignore WordPress.Security.EscapeOutput ?>
+				<?php endif; ?>
+			</p>
 			<div style="display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start">
 				<div style="flex:1;min-width:320px">
 					<table class="widefat striped">
 						<tbody>
 						<?php foreach ( explode( "\n", Qhatuq_Leads::as_text( $lead ) ) as $line ) : ?>
 							<?php list( $label, $value ) = array_pad( explode( ': ', $line, 2 ), 2, '' ); ?>
-							<tr><th style="width:140px"><?php echo esc_html( $label ); ?></th><td><?php echo nl2br( esc_html( $value ) ); ?></td></tr>
+							<tr><th style="width:140px"><?php echo esc_html( $label ); ?></th><td><?php echo nl2br( esc_html( $value ) ); ?><?php echo 'Teléfono' === $label ? self::whatsapp_link( $lead, true ) : ''; // phpcs:ignore WordPress.Security.EscapeOutput ?></td></tr>
 						<?php endforeach; ?>
 						<tr><th>Creado</th><td><?php echo esc_html( get_date_from_gmt( $lead['created_at'], 'd/m/Y H:i' ) ); ?></td></tr>
 						<tr><th>Aviso por correo</th><td><?php echo $lead['notified_at'] ? esc_html( get_date_from_gmt( $lead['notified_at'], 'd/m/Y H:i' ) ) : 'Pendiente (faltan datos de contacto o necesidad)'; ?></td></tr>
@@ -517,7 +649,15 @@ class Qhatuq_Admin {
 			?>
 			<div class="wrap">
 				<h1>Conversación #<?php echo (int) $conv_id; ?></h1>
-				<p><a href="<?php echo esc_url( admin_url( 'admin.php?page=qhatuq-conversations' ) ); ?>">&larr; Volver a conversaciones</a></p>
+				<p>
+					<a href="<?php echo esc_url( admin_url( 'admin.php?page=qhatuq-conversations' ) ); ?>">&larr; Volver a conversaciones</a>
+					<?php if ( $conv ) : ?>
+						&nbsp;|&nbsp; <?php echo self::delete_link( 'conversation', $conv_id, 'Eliminar conversación' ); // phpcs:ignore WordPress.Security.EscapeOutput ?>
+						<?php if ( $lead ) : ?>
+							&nbsp;|&nbsp; <?php echo self::delete_link( 'conversation', $conv_id, 'Eliminar conversación y lead', true ); // phpcs:ignore WordPress.Security.EscapeOutput ?>
+						<?php endif; ?>
+					<?php endif; ?>
+				</p>
 				<?php if ( $conv ) : ?>
 					<p>
 						<?php echo esc_html( get_date_from_gmt( $conv['created_at'], 'd/m/Y H:i' ) ); ?> ·
