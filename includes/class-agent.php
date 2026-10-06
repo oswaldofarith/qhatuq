@@ -85,7 +85,13 @@ class Qhatuq_Agent {
 			error_log( '[qhatuq] Conversación ' . $conv_id . ': ' . $e->getMessage() );
 			Qhatuq_DB::add_message( $conv_id, 'error', $e->getMessage() );
 			Qhatuq_DB::add_message( $conv_id, 'assistant', self::FALLBACK_REPLY );
-			Qhatuq_DB::update_conversation( $conv_id, array( 'user_messages' => (int) $conv['user_messages'] + 1 ) );
+			Qhatuq_DB::update_conversation(
+				$conv_id,
+				array(
+					'user_messages'  => (int) $conv['user_messages'] + 1,
+					'summary_status' => '',
+				)
+			);
 			return array(
 				'reply' => self::FALLBACK_REPLY,
 				'ok'    => false,
@@ -96,7 +102,9 @@ class Qhatuq_Agent {
 			$conv_id,
 			array(
 				'transcript'    => wp_json_encode( $transcript, JSON_UNESCAPED_UNICODE ),
-				'user_messages' => (int) $conv['user_messages'] + 1,
+				'user_messages'  => (int) $conv['user_messages'] + 1,
+				// Si el visitante retoma la conversación, se volverá a resumir al terminar.
+				'summary_status' => '',
 			)
 		);
 		Qhatuq_DB::add_usage( $conv_id, $result['usage'] );

@@ -69,6 +69,11 @@ class Qhatuq_Settings {
 			'max_per_ip_hour'      => 60,
 			'max_message_chars'    => 1500,
 			'retention_days'       => 365,
+
+			'summary_enabled'      => 1,
+			'summary_idle_minutes' => 30,
+			'summary_all'          => 0,
+			'weekly_digest'        => 1,
 		);
 	}
 
@@ -118,6 +123,9 @@ class Qhatuq_Settings {
 
 		$out['enabled']  = empty( $input['enabled'] ) ? 0 : 1;
 		$out['web_search'] = empty( $input['web_search'] ) ? 0 : 1;
+		foreach ( array( 'summary_enabled', 'summary_all', 'weekly_digest' ) as $k ) {
+			$out[ $k ] = empty( $input[ $k ] ) ? 0 : 1;
+		}
 		$out['provider'] = in_array( $input['provider'] ?? '', array( 'claude', 'gemini' ), true ) ? $input['provider'] : 'claude';
 
 		// Un campo de clave vacío conserva la clave guardada.
@@ -160,6 +168,7 @@ class Qhatuq_Settings {
 			'max_per_ip_hour'   => array( 5, 1000 ),
 			'max_message_chars' => array( 200, 5000 ),
 			'retention_days'    => array( 0, 3650 ),
+			'summary_idle_minutes' => array( 10, 1440 ),
 			'teaser_delay'      => array( 0, 300 ),
 		);
 		foreach ( $ints as $k => list( $min, $max ) ) {

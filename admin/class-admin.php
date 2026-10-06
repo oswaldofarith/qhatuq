@@ -242,6 +242,35 @@ class Qhatuq_Admin {
 					</tr>
 				</table>
 
+				<h2 class="title">Resúmenes por correo</h2>
+				<table class="form-table" role="presentation">
+					<tr>
+						<th>Resumen de cada conversación</th>
+						<td>
+							<label><input type="checkbox" name="<?php echo $f( 'summary_enabled' ); ?>" value="1" <?php checked( $s['summary_enabled'], 1 ); ?>> Enviar un resumen cuando la conversación termina</label>
+							<p>
+								Se considera terminada tras
+								<input type="number" min="10" max="1440" name="<?php echo $f( 'summary_idle_minutes' ); ?>" value="<?php echo esc_attr( $s['summary_idle_minutes'] ); ?>" style="width:80px">
+								minutos sin mensajes.
+							</p>
+							<p><label><input type="checkbox" name="<?php echo $f( 'summary_all' ); ?>" value="1" <?php checked( $s['summary_all'], 1 ); ?>> Enviar también las conversaciones sin interés comercial</label></p>
+							<p class="description">El correo incluye un resumen hecho por la IA (qué buscaba, qué datos dejó, qué quedó pendiente y un siguiente paso sugerido) y avisa cuando un interesado se fue sin dejar contacto. Se envía a los mismos correos de avisos de leads. Si el visitante retoma la conversación, se envía otro resumen al terminar.</p>
+						</td>
+					</tr>
+					<tr>
+						<th>Resumen semanal</th>
+						<td>
+							<label><input type="checkbox" name="<?php echo $f( 'weekly_digest' ); ?>" value="1" <?php checked( $s['weekly_digest'], 1 ); ?>> Enviar los lunes a las 8:00 un resumen de la semana</label>
+							<p class="description">Conversaciones por interés, leads nuevos, interesados sin contacto y productos fuera del catálogo que pidieron. Solo se envía si hubo actividad.</p>
+						</td>
+					</tr>
+				</table>
+				<?php if ( defined( 'DISABLE_WP_CRON' ) && DISABLE_WP_CRON ) : ?>
+					<p class="description">WP-Cron está desactivado en wp-config.php: asegúrese de tener una tarea programada en el servidor que ejecute wp-cron.php.</p>
+				<?php else : ?>
+					<p class="description"><strong>Importante:</strong> WordPress ejecuta las tareas programadas solo cuando alguien visita el sitio. Con poco tráfico, los resúmenes pueden demorar. Para que salgan a tiempo, cree en Plesk una tarea programada cada 5 minutos que abra <code><?php echo esc_html( site_url( 'wp-cron.php?doing_wp_cron' ) ); ?></code>.</p>
+				<?php endif; ?>
+
 				<h2 class="title">Apariencia y límites</h2>
 				<table class="form-table" role="presentation">
 					<tr>
@@ -429,6 +458,7 @@ class Qhatuq_Admin {
 				</div>
 				<div style="flex:1;min-width:320px">
 					<h2 style="margin-top:0">Conversación</h2>
+					<?php self::render_summary( Qhatuq_DB::get_conversation( (int) $lead['conversation_id'] ) ); ?>
 					<?php self::render_transcript( (int) $lead['conversation_id'] ); ?>
 				</div>
 			</div>
@@ -503,6 +533,7 @@ class Qhatuq_Admin {
 							· <a href="<?php echo esc_url( admin_url( 'admin.php?page=qhatuq-leads&lead=' . $lead['id'] ) ); ?>">Ver lead</a>
 						<?php endif; ?>
 					</p>
+					<?php self::render_summary( $conv ); ?>
 					<div style="max-width:760px"><?php self::render_transcript( $conv_id ); ?></div>
 				<?php else : ?>
 					<p>Conversación no encontrada (puede haberse borrado por el plazo de retención).</p>
@@ -523,6 +554,42 @@ class Qhatuq_Admin {
 			</form>
 		</div>
 		<?php
+	}
+
+	private static function render_summary( ?array $conv ): void {
+		if ( ! $conv ) {
+			return;
+		}
+		$s = json_decode( (string) ( $conv['summary'] ?? '' ), true );
+		if ( ! is_array( $s ) ) {
+			if ( '' === ( $conv['summary_status'] ?? '' ) && (int) $conv['user_messages'] > 0 ) {
+				echo '<p class="description">El resumen se generará cuando la conversación termine.</p>';
+			}
+			return;
+		}
+		$status = array(
+			'sent'    => 'enviado por correo',
+			'skipped' => 'no enviado (sin interés comercial)',
+			'failed'  => 'no se pudo generar con la IA; se envió un aviso',
+		);
+		echo '<div style="max-width:760px;background:#fff;border:1px solid #dcdcde;border-left:4px solid ' . ( ! empty( $s['lead_sin_contacto'] ) ? '#d63638' : '#2271b1' ) . ';padding:10px 14px;margin:12px 0">';
+		echo '<p style="margin-top:0"><strong>Resumen</strong> <span class="description">(' . esc_html( $status[ $conv['summary_status'] ] ?? $conv['summary_status'] ) . ( $conv['summary_at'] ? ', ' . esc_html( get_date_from_gmt( $conv['summary_at'], 'd/m/Y H:i' ) ) : '' ) . ')</span></p>';
+		if ( ! empty( $s['lead_sin_contacto'] ) ) {
+			echo '<p style="color:#d63638"><strong>Interesado sin datos de contacto.</strong></p>';
+		}
+		$rows = array(
+			'Resumen'          => $s['resumen'] ?? '',
+			'Interés'          => Qhatuq_Summaries::INTEREST[ $s['interes'] ?? '' ] ?? '',
+			'Datos de contacto' => $s['datos_contacto'] ?? '',
+			'Pendiente'        => $s['pendiente'] ?? '',
+			'Siguiente paso'   => $s['siguiente_paso'] ?? '',
+		);
+		foreach ( $rows as $label => $value ) {
+			if ( '' !== (string) $value ) {
+				echo '<p style="margin:4px 0"><strong>' . esc_html( $label ) . ':</strong> ' . esc_html( $value ) . '</p>';
+			}
+		}
+		echo '</div>';
 	}
 
 	private static function render_transcript( int $conversation_id ): void {

@@ -44,6 +44,9 @@ class Qhatuq_DB {
 			cache_read_tokens bigint(20) unsigned NOT NULL DEFAULT 0,
 			web_search tinyint(1) NOT NULL DEFAULT 0,
 			web_searches int(10) unsigned NOT NULL DEFAULT 0,
+			summary longtext NULL,
+			summary_status varchar(20) NOT NULL DEFAULT '',
+			summary_at datetime NULL DEFAULT NULL,
 			status varchar(20) NOT NULL DEFAULT 'open',
 			created_at datetime NOT NULL,
 			updated_at datetime NOT NULL,
@@ -93,8 +96,17 @@ class Qhatuq_DB {
 	}
 
 	public static function maybe_upgrade(): void {
-		if ( get_option( 'qhatuq_db_version' ) !== QHATUQ_DB_VERSION ) {
-			self::install();
+		$installed = get_option( 'qhatuq_db_version' );
+		if ( $installed === QHATUQ_DB_VERSION ) {
+			return;
+		}
+		self::install();
+		// Al pasar a la versión 3 (resúmenes por correo), las conversaciones anteriores no se
+		// resumen: evita enviar de golpe un correo por cada conversación antigua.
+		if ( $installed && version_compare( (string) $installed, '3', '<' ) ) {
+			global $wpdb;
+			$t = self::table( 'conversations' );
+			$wpdb->query( "UPDATE {$t} SET summary_status = 'skipped' WHERE summary_status = ''" );
 		}
 	}
 
@@ -172,6 +184,12 @@ class Qhatuq_DB {
 	public static function update_conversation( int $id, array $fields ): void {
 		global $wpdb;
 		$fields['updated_at'] = self::now();
+		$wpdb->update( self::table( 'conversations' ), $fields, array( 'id' => $id ) );
+	}
+
+	/** Actualiza sin tocar updated_at (que marca la última actividad del visitante). */
+	public static function update_conversation_raw( int $id, array $fields ): void {
+		global $wpdb;
 		$wpdb->update( self::table( 'conversations' ), $fields, array( 'id' => $id ) );
 	}
 

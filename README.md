@@ -13,6 +13,7 @@
   Nunca menciona precios encontrados ni envía al cliente a otras tiendas. Las búsquedas quedan registradas en la conversación y el resultado en el lead.
 - **Registra leads.** Pide nombre, teléfono, correo, empresa y necesidad (productos y cantidades), y clasifica cada lead como caliente, tibio o frío.
 - **Avisa por correo** al equipo comercial cuando un lead tiene datos de contacto y una necesidad.
+- **Resume cada conversación por correo.** Cuando el visitante deja de escribir (30 minutos por defecto), la IA prepara un resumen para los comerciales: qué buscaba, qué datos dejó, qué quedó pendiente y un siguiente paso sugerido. Si alguien mostró interés concreto y se fue sin dejar contacto, el correo llega marcado con ⚠. Las conversaciones sin interés comercial no se envían (es configurable). Los lunes a las 8:00 llega un resumen semanal.
 - **Guarda las conversaciones** en un panel con las conversaciones completas, los leads con su estado (nuevo, contactado, cotizado, ganado, perdido), notas internas y exportación a CSV.
 - Funciona con **Claude (Anthropic)** o con **Gemini (Google)**.
 - **Interfaz moderna y aislada del tema:** el chat se dibuja en un Shadow DOM, así que BeTheme u otros temas no alteran su aspecto. Tiene foto del agente (se sube desde la Biblioteca de medios), sugerencias rápidas, burbuja de invitación opcional, contraste automático según el color de marca y pantalla completa en móviles.
@@ -83,6 +84,9 @@ Navegador (widget) ──► /wp-json/qhatuq/v1/chat ──► Qhatuq_Agent ─�
 - **Retención de datos.** Las conversaciones se borran pasado el plazo configurado (365 días por defecto). Los leads se conservan.
 
 ## Notas para los sitios de Hanaq
+
+- **Tareas programadas (importante para los resúmenes):** WordPress ejecuta sus tareas programadas (WP-Cron) solo cuando alguien visita el sitio. Con poco tráfico, los resúmenes pueden demorar horas. En Plesk, vaya a **Herramientas y configuración → Tareas programadas** (o "Tareas programadas" del dominio) y cree una tarea cada 5 minutos que abra la URL `https://SU-SITIO/wp-cron.php?doing_wp_cron`. Opcionalmente, agregue `define( 'DISABLE_WP_CRON', true );` en `wp-config.php` para que solo se ejecute con esa tarea.
+- **Correo:** para que los avisos no caigan en spam, configure un plugin SMTP (por ejemplo, WP Mail SMTP) con una cuenta real de la empresa.
 
 - **Wordfence:** el chat usa la REST API de WordPress. Si activa opciones que bloquean la REST API para visitantes anónimos, permita la ruta `/wp-json/qhatuq/v1/`.
 - **Caché del sitio** (BeTheme, Plesk o un plugin de caché): no hace falta excluir nada. Las respuestas del chat no se guardan en caché porque son peticiones POST.

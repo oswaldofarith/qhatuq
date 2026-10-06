@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Qhatuq – Agente de ventas con IA
  * Description:       Asistente de chat que atiende a los visitantes como un agente comercial: conoce el catálogo, sabe lo que no se ofrece, registra conversaciones e identifica leads. Funciona con Claude (Anthropic) o Gemini (Google).
- * Version:           0.4.0
+ * Version:           0.5.0
  * Requires at least: 6.5
  * Requires PHP:      8.1
  * Author:            Hanaq
@@ -12,8 +12,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'QHATUQ_VERSION', '0.4.0' );
-define( 'QHATUQ_DB_VERSION', '2' );
+define( 'QHATUQ_VERSION', '0.5.0' );
+define( 'QHATUQ_DB_VERSION', '3' );
 define( 'QHATUQ_FILE', __FILE__ );
 define( 'QHATUQ_DIR', plugin_dir_path( __FILE__ ) );
 define( 'QHATUQ_URL', plugin_dir_url( __FILE__ ) );
@@ -29,6 +29,7 @@ require_once QHATUQ_DIR . 'includes/class-prompt.php';
 require_once QHATUQ_DIR . 'includes/class-tools.php';
 require_once QHATUQ_DIR . 'includes/class-leads.php';
 require_once QHATUQ_DIR . 'includes/class-web-verifier.php';
+require_once QHATUQ_DIR . 'includes/class-summaries.php';
 require_once QHATUQ_DIR . 'includes/providers/interface-provider.php';
 require_once QHATUQ_DIR . 'includes/providers/class-provider-claude.php';
 require_once QHATUQ_DIR . 'includes/providers/class-provider-gemini.php';
@@ -45,6 +46,7 @@ if ( is_admin() ) {
 register_activation_hook( __FILE__, array( 'Qhatuq_DB', 'install' ) );
 register_activation_hook( __FILE__, array( 'Qhatuq_Catalog', 'seed_defaults' ) );
 register_deactivation_hook( __FILE__, array( 'Qhatuq_DB', 'unschedule_cleanup' ) );
+register_deactivation_hook( __FILE__, array( 'Qhatuq_Summaries', 'unschedule' ) );
 
 add_action(
 	'plugins_loaded',
@@ -54,6 +56,7 @@ add_action(
 		Qhatuq_Rest::init();
 		Qhatuq_Widget::init();
 		Qhatuq_DB::init_cleanup();
+		Qhatuq_Summaries::init();
 		if ( is_admin() ) {
 			Qhatuq_Admin::init();
 		}

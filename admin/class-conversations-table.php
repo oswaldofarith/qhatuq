@@ -26,6 +26,7 @@ class Qhatuq_Conversations_Table extends WP_List_Table {
 			'created_at'    => 'Inicio',
 			'first_message' => 'Primer mensaje',
 			'user_messages' => 'Mensajes',
+			'interest'      => 'Interés',
 			'lead'          => 'Lead',
 			'model'         => 'Modelo',
 			'tokens'        => 'Tokens (entrada / caché / salida)',
@@ -43,7 +44,7 @@ class Qhatuq_Conversations_Table extends WP_List_Table {
 
 		$this->items = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT c.id, c.created_at, c.user_messages, c.provider, c.model, c.input_tokens, c.output_tokens, c.cache_read_tokens,
+				"SELECT c.id, c.created_at, c.user_messages, c.provider, c.model, c.input_tokens, c.output_tokens, c.cache_read_tokens, c.summary, c.summary_status,
 					(SELECT content FROM {$m} WHERE conversation_id = c.id AND role = 'user' ORDER BY id ASC LIMIT 1) AS first_message,
 					(SELECT id FROM {$l} WHERE conversation_id = c.id ORDER BY id DESC LIMIT 1) AS lead_id
 				FROM {$c} c WHERE c.user_messages > 0 ORDER BY c.id DESC LIMIT %d OFFSET %d",
@@ -69,6 +70,21 @@ class Qhatuq_Conversations_Table extends WP_List_Table {
 
 	protected function column_first_message( $item ) {
 		return esc_html( wp_trim_words( (string) $item['first_message'], 14 ) );
+	}
+
+	protected function column_interest( $item ) {
+		$s = json_decode( (string) $item['summary'], true );
+		if ( ! is_array( $s ) ) {
+			return '' === $item['summary_status'] ? '<span class="description">En curso</span>' : '—';
+		}
+		$out = esc_html( Qhatuq_Summaries::INTEREST[ $s['interes'] ?? '' ] ?? '—' );
+		if ( ! empty( $s['lead_sin_contacto'] ) ) {
+			$out .= ' <span style="color:#d63638" title="Interesado sin datos de contacto">⚠</span>';
+		}
+		if ( '' === $item['summary_status'] ) {
+			$out .= ' <span class="description">(retomada, en curso)</span>';
+		}
+		return $out;
 	}
 
 	protected function column_lead( $item ) {
