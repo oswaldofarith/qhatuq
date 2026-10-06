@@ -20,6 +20,14 @@
 - Funciona con **Claude (Anthropic)** o con **Gemini (Google)**.
 - **Interfaz moderna y aislada del tema:** el chat se dibuja en un Shadow DOM, así que BeTheme u otros temas no alteran su aspecto. Tiene foto del agente (se sube desde la Biblioteca de medios), sugerencias rápidas, burbuja de invitación opcional, contraste automático según el color de marca y pantalla completa en móviles.
 
+## Varios sitios: exportar e importar
+
+En **Agente de ventas → Exportar / Importar** puede descargar la configuración de un sitio y cargarla en otro. Incluye los ajustes, los productos y servicios, "Lo que no ofrecemos" y, si quiere, la foto del agente. **Las API keys nunca se exportan.**
+
+Al importar se muestra primero una vista previa:
+- **Ajustes:** elige qué grupos traer. Los que suelen cambiar entre sitios, como empresa, privacidad y apariencia, vienen desmarcados.
+- **Catálogo y "Lo que no ofrecemos":** elige entre combinar (agrega y actualiza por nombre, sin borrar), reemplazar (deja exactamente lo del archivo y envía el resto a la papelera, de donde se puede recuperar) o no importar.
+
 ## Requisitos
 
 - WordPress 6.5 o superior (probado con 7.x) y PHP 8.1 o superior.

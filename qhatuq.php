@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Qhatuq – Agente de ventas con IA
  * Description:       Asistente de chat que atiende a los visitantes como un agente comercial: conoce el catálogo, sabe lo que no se ofrece, registra conversaciones e identifica leads. Funciona con Claude (Anthropic) o Gemini (Google).
- * Version:           0.6.0
+ * Version:           0.7.0
  * Requires at least: 6.5
  * Requires PHP:      8.1
  * Author:            Hanaq
@@ -12,7 +12,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'QHATUQ_VERSION', '0.6.0' );
+define( 'QHATUQ_VERSION', '0.7.0' );
 define( 'QHATUQ_DB_VERSION', '3' );
 define( 'QHATUQ_FILE', __FILE__ );
 define( 'QHATUQ_DIR', plugin_dir_path( __FILE__ ) );
@@ -41,6 +41,7 @@ if ( is_admin() ) {
 	require_once QHATUQ_DIR . 'admin/class-admin.php';
 	require_once QHATUQ_DIR . 'admin/class-leads-table.php';
 	require_once QHATUQ_DIR . 'admin/class-conversations-table.php';
+	require_once QHATUQ_DIR . 'admin/class-transfer.php';
 }
 
 register_activation_hook( __FILE__, array( 'Qhatuq_DB', 'install' ) );
@@ -59,6 +60,7 @@ add_action(
 		Qhatuq_Summaries::init();
 		if ( is_admin() ) {
 			Qhatuq_Admin::init();
+			Qhatuq_Transfer::init();
 		}
 	}
 );
