@@ -12,6 +12,9 @@
   - **Vibrante:** degradado del color de marca y botón tipo píldora con texto.
 
   Se eligen en Ajustes → Apariencia; el enlace "Vista previa" muestra el tema en el sitio solo al administrador, sin guardar el cambio.
+- **Ícono del botón del chat**, a elegir:
+  - el globo de conversación;
+  - la foto del agente, con indicador de "en línea" (o su inicial si no hay foto).
 - **Saludo según la página.** Cada producto o servicio puede tener páginas asociadas (elegidas de la lista o por partes de la dirección, como `/telefonia-ip`) con su propio saludo y sugerencias rápidas. En esas páginas el chat se abre con ese saludo y el agente sabe qué servicio está mirando el visitante.
 - **Verifica productos fuera del catálogo** (con Claude o Gemini). Si piden una licencia, suscripción o equipo que no está en el catálogo ni en "Lo que no ofrecemos", el agente busca en la web si se vende abiertamente en EE. UU. o Ecuador:
   - **Si se vende:** lo trata como un producto más y pasa a cotizar.

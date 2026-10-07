@@ -61,6 +61,7 @@ class Qhatuq_Widget {
 				'position'      => $s['widget_position'],
 				'theme'         => self::theme( $s ),
 				'launcherLabel' => $s['launcher_label'],
+				'launcherIcon'  => $s['launcher_icon'],
 				'avatar'        => Qhatuq_Settings::avatar_url(),
 				'suggestions'   => $suggestions,
 				'teaserDelay'   => (int) $s['teaser_delay'],

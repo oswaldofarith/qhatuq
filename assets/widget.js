@@ -203,6 +203,15 @@
 	launcher.setAttribute('aria-label', 'Abrir chat con ' + cfg.title);
 	launcher.setAttribute('aria-expanded', 'false');
 	launcher.innerHTML = '<span class="ico ico-chat">' + ICONS.chat + '</span><span class="ico ico-close">' + ICONS.close + '</span>';
+	if (cfg.launcherIcon === 'avatar') {
+		// Foto del agente (o su inicial) en lugar del globo, con indicador de "en línea".
+		var chatIco = launcher.querySelector('.ico-chat');
+		chatIco.innerHTML = '';
+		chatIco.classList.add('ico-avatar');
+		chatIco.appendChild(avatar());
+		chatIco.appendChild(el('span', 'launcher-dot'));
+		launcher.classList.add('with-avatar');
+	}
 	if (cfg.launcherLabel) {
 		// Solo visible en los temas que lo usan (p. ej., Vibrante).
 		launcher.appendChild(el('span', 'launcher-label', cfg.launcherLabel));

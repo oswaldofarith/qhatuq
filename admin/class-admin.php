@@ -342,6 +342,29 @@ class Qhatuq_Admin {
 						</td>
 					</tr>
 					<tr>
+						<th>Ícono del botón</th>
+						<td>
+							<label style="display:inline-flex;align-items:center;gap:8px;margin-right:24px">
+								<input type="radio" name="<?php echo $f( 'launcher_icon' ); ?>" value="chat" <?php checked( $s['launcher_icon'], 'chat' ); ?>>
+								<span style="width:36px;height:36px;border-radius:50%;background:<?php echo esc_attr( $s['widget_color'] ); ?>;display:inline-flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 3C6.5 3 2 6.8 2 11.5c0 2.4 1.2 4.6 3.1 6.1L4.3 21l4-1.9c1.2.4 2.4.6 3.7.6 5.5 0 10-3.8 10-8.4S17.5 3 12 3z" fill="#fff"/></svg></span>
+								Globo de conversación
+							</label>
+							<label style="display:inline-flex;align-items:center;gap:8px">
+								<input type="radio" name="<?php echo $f( 'launcher_icon' ); ?>" value="avatar" <?php checked( $s['launcher_icon'], 'avatar' ); ?>>
+								<?php $av = Qhatuq_Settings::avatar_url(); ?>
+								<span style="position:relative;width:36px;height:36px;border-radius:50%;overflow:hidden;background:<?php echo esc_attr( $s['widget_color'] ); ?>;color:#fff;font-weight:700;display:inline-flex;align-items:center;justify-content:center">
+									<?php if ( $av ) : ?>
+										<img src="<?php echo esc_url( $av ); ?>" alt="" style="width:100%;height:100%;object-fit:cover">
+									<?php else : ?>
+										<?php echo esc_html( mb_strtoupper( mb_substr( $s['agent_name'] ? $s['agent_name'] : 'A', 0, 1 ) ) ); ?>
+									<?php endif; ?>
+								</span>
+								Foto del agente
+							</label>
+							<p class="description">Lo que ven los visitantes cuando el chat está cerrado. Con "Foto del agente" se muestra la foto configurada arriba (o la inicial del agente si no hay foto) con un indicador de "en línea".</p>
+						</td>
+					</tr>
+					<tr>
 						<th><label for="qhatuq-launcher-label">Texto del botón</label></th>
 						<td>
 							<input type="text" id="qhatuq-launcher-label" class="regular-text" maxlength="40" name="<?php echo $f( 'launcher_label' ); ?>" value="<?php echo esc_attr( $s['launcher_label'] ); ?>">

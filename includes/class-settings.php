@@ -70,6 +70,7 @@ class Qhatuq_Settings {
 			'widget_position'      => 'right',
 			'widget_theme'         => 'clasico',
 			'launcher_label'       => '¿Hablamos?',
+			'launcher_icon'        => 'chat',
 			'widget_title'         => 'Asesor comercial',
 			'widget_avatar'        => '',
 			'widget_avatar_id'     => 0,
@@ -173,6 +174,7 @@ class Qhatuq_Settings {
 		$out['widget_position'] = 'left' === ( $input['widget_position'] ?? '' ) ? 'left' : 'right';
 		$out['widget_theme']    = array_key_exists( $input['widget_theme'] ?? '', self::THEMES ) ? $input['widget_theme'] : 'clasico';
 		$out['launcher_label']  = mb_substr( sanitize_text_field( $input['launcher_label'] ?? '' ), 0, 40 );
+		$out['launcher_icon']   = 'avatar' === ( $input['launcher_icon'] ?? '' ) ? 'avatar' : 'chat';
 		$out['widget_avatar']   = esc_url_raw( $input['widget_avatar'] ?? '' );
 		$avatar_id              = absint( $input['widget_avatar_id'] ?? 0 );
 		$out['widget_avatar_id'] = $avatar_id && wp_attachment_is_image( $avatar_id ) ? $avatar_id : 0;

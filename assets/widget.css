@@ -495,3 +495,37 @@ svg { width: 100%; height: 100%; display: block; }
 	.theme-vibrante.open .launcher.has-label { display: none; }
 	.theme-vibrante .launcher.has-label .launcher-label { font-size: 14px; }
 }
+
+/* ---------------------------------------------------------------- Botón con la foto del agente */
+.launcher .ico-avatar {
+	width: 100%;
+	height: 100%;
+	border-radius: 50%;
+}
+.launcher .ico-avatar .avatar {
+	width: 100%;
+	height: 100%;
+	font-size: 24px;
+	background: var(--accent);
+	color: var(--on-accent);
+	box-shadow: inset 0 0 0 3px rgba(255, 255, 255, .85);
+}
+.launcher-dot {
+	position: absolute;
+	right: 1px;
+	bottom: 1px;
+	width: 15px;
+	height: 15px;
+	border-radius: 50%;
+	background: #22c55e;
+	border: 2.5px solid #fff;
+}
+/* Tema Vibrante con texto: la foto va dentro de la píldora, a la izquierda. */
+.theme-vibrante .launcher.has-label.with-avatar { padding-left: 6px; }
+.theme-vibrante .launcher.has-label .ico-avatar {
+	position: relative;
+	width: 46px;
+	height: 46px;
+}
+.theme-vibrante .launcher.has-label .ico-avatar .avatar { font-size: 19px; box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .7); }
+.theme-vibrante .launcher.has-label .launcher-dot { width: 12px; height: 12px; border-width: 2px; }
