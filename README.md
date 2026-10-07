@@ -30,6 +30,18 @@
 - Funciona con **Claude (Anthropic)** o con **Gemini (Google)**.
 - **Interfaz moderna y aislada del tema:** el chat se dibuja en un Shadow DOM, así que BeTheme u otros temas no alteran su aspecto. Tiene foto del agente (se sube desde la Biblioteca de medios), sugerencias rápidas, burbuja de invitación opcional, contraste automático según el color de marca y pantalla completa en móviles.
 
+## Ajustes
+
+La pantalla **Agente de ventas → Ajustes** está organizada en pestañas:
+- **General:** estado, proveedor, API keys, modelos y verificación web.
+- **Agente:** empresa, personalidad y reglas.
+- **Apariencia:** tema, color, foto, ícono y textos, con una **vista previa en vivo** del chat abierto y cerrado que se actualiza antes de guardar.
+- **Avisos:** correos, resúmenes y WhatsApp.
+- **Privacidad y límites.**
+- **Herramientas:** prueba de conexión e instrucciones del agente.
+
+El botón "Guardar ajustes" guarda todas las pestañas a la vez.
+
 ## Varios sitios: exportar e importar
 
 En **Agente de ventas → Exportar / Importar** puede descargar la configuración de un sitio y cargarla en otro. Incluye los ajustes, los productos y servicios, "Lo que no ofrecemos" y, si quiere, la foto del agente. **Las API keys nunca se exportan.**

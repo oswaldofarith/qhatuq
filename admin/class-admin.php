@@ -34,7 +34,33 @@ class Qhatuq_Admin {
 			'qhatuq-admin',
 			'.qhatuq-avatar-field{display:flex;align-items:center;gap:12px}
 			.qhatuq-avatar-preview,.qhatuq-avatar-empty{width:64px;height:64px;border-radius:50%;overflow:hidden;flex:none;background:#2271b1;color:#fff;font-size:26px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 0 0 1px #dcdcde}
-			.qhatuq-avatar-preview img{width:100%;height:100%;object-fit:cover}'
+			.qhatuq-avatar-preview img{width:100%;height:100%;object-fit:cover}
+			.qhatuq-tabs{margin-bottom:0}
+			.qhatuq-tab{display:none;background:#fff;border:1px solid #c3c4c7;border-top:0;padding:8px 24px 16px}
+			.qhatuq-tab.is-active{display:block}
+			.qhatuq-tab .form-table th{width:210px}
+			.qhatuq-tab h2.title{margin-top:1.6em;padding-top:1em;border-top:1px solid #f0f0f1}
+			.qhatuq-tab h2.title:first-child{margin-top:.6em;padding-top:0;border-top:0}
+			.qhatuq-save{position:sticky;bottom:0;background:#f0f0f1;padding:12px 0;margin-top:0;z-index:5}
+			.qhatuq-choice{display:flex;gap:8px;align-items:flex-start;margin-bottom:10px}
+			.qhatuq-choice input{margin-top:3px}
+			.qhatuq-inline{display:inline-block;margin-right:18px}
+			.qhatuq-appearance{display:flex;gap:28px;align-items:flex-start;flex-wrap:wrap}
+			.qhatuq-appearance-fields{flex:1 1 520px;min-width:0}
+			.qhatuq-preview-col{flex:0 0 400px;position:sticky;top:44px}
+			.qhatuq-preview-card{background:#f6f7f7;border:1px solid #dcdcde;border-radius:10px;padding:14px;max-height:calc(100vh - 64px);overflow:auto}
+			.qhatuq-preview-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+			.qhatuq-preview-stage{background:repeating-linear-gradient(45deg,#eef0f2 0 12px,#e8ebee 12px 24px);border-radius:8px;padding:16px;min-height:200px}
+			@media (max-width:1100px){.qhatuq-preview-col{position:static;flex:1 1 100%}}'
+		);
+		wp_enqueue_script( 'qhatuq-admin-settings', QHATUQ_URL . 'assets/admin-settings.js', array(), QHATUQ_VERSION, true );
+		wp_localize_script(
+			'qhatuq-admin-settings',
+			'QhatuqAdmin',
+			array(
+				'cssUrl'  => add_query_arg( 'ver', QHATUQ_VERSION, QHATUQ_URL . 'assets/widget.css' ),
+				'homeUrl' => home_url( '/' ),
+			)
 		);
 		wp_add_inline_script(
 			'media-editor',
@@ -110,299 +136,364 @@ class Qhatuq_Admin {
 		$s    = Qhatuq_Settings::all();
 		$name = Qhatuq_Settings::OPTION;
 		$f    = static fn( $k ) => esc_attr( $name . '[' . $k . ']' );
+		$tabs = array(
+			'general'     => 'General',
+			'agente'      => 'Agente',
+			'apariencia'  => 'Apariencia',
+			'avisos'      => 'Avisos',
+			'privacidad'  => 'Privacidad y límites',
+			'herramientas' => 'Herramientas',
+		);
 		?>
-		<div class="wrap">
+		<div class="wrap qhatuq-settings">
 			<h1>Ajustes del agente de ventas</h1>
 			<p>El catálogo se administra en <a href="<?php echo esc_url( admin_url( 'edit.php?post_type=' . Qhatuq_Catalog::OFFER ) ); ?>">Productos y servicios</a> y <a href="<?php echo esc_url( admin_url( 'edit.php?post_type=' . Qhatuq_Catalog::EXCLUSION ) ); ?>">Lo que no ofrecemos</a>. Los cambios se aplican a las conversaciones nuevas.</p>
 
-			<form method="post" action="options.php">
+			<nav class="nav-tab-wrapper qhatuq-tabs" aria-label="Secciones de ajustes">
+				<?php foreach ( $tabs as $id => $label ) : ?>
+					<a href="#<?php echo esc_attr( $id ); ?>" class="nav-tab" data-tab="<?php echo esc_attr( $id ); ?>"><?php echo esc_html( $label ); ?></a>
+				<?php endforeach; ?>
+			</nav>
+
+			<form method="post" action="options.php" id="qhatuq-settings-form">
 				<?php settings_fields( 'qhatuq' ); ?>
 
-				<h2 class="title">Inteligencia artificial</h2>
-				<table class="form-table" role="presentation">
-					<tr>
-						<th>Estado</th>
-						<td><label><input type="checkbox" name="<?php echo $f( 'enabled' ); ?>" value="1" <?php checked( $s['enabled'], 1 ); ?>> Mostrar el chat en el sitio</label></td>
-					</tr>
-					<tr>
-						<th>Proveedor</th>
-						<td>
-							<label><input type="radio" name="<?php echo $f( 'provider' ); ?>" value="claude" <?php checked( $s['provider'], 'claude' ); ?>> Claude (Anthropic)</label>&nbsp;&nbsp;
-							<label><input type="radio" name="<?php echo $f( 'provider' ); ?>" value="gemini" <?php checked( $s['provider'], 'gemini' ); ?>> Gemini (Google)</label>
-							<p class="description">Las conversaciones ya iniciadas terminan con el proveedor y el modelo con que empezaron.</p>
-						</td>
-					</tr>
-					<?php self::key_row( 'claude', 'API key de Claude', 'platform.claude.com', $s ); ?>
-					<tr>
-						<th><label for="qhatuq-claude-model">Modelo de Claude</label></th>
-						<td>
-							<select id="qhatuq-claude-model" name="<?php echo $f( 'claude_model' ); ?>">
-								<?php foreach ( Qhatuq_Settings::CLAUDE_MODELS as $id => $label ) : ?>
-									<option value="<?php echo esc_attr( $id ); ?>" <?php selected( $s['claude_model'], $id ); ?>><?php echo esc_html( $label ); ?></option>
-								<?php endforeach; ?>
-							</select>
-						</td>
-					</tr>
-					<tr>
-						<th><label for="qhatuq-effort">Nivel de razonamiento (Claude)</label></th>
-						<td>
-							<select id="qhatuq-effort" name="<?php echo $f( 'claude_effort' ); ?>">
-								<option value="low" <?php selected( $s['claude_effort'], 'low' ); ?>>Bajo (recomendado para chat: más rápido y económico)</option>
-								<option value="medium" <?php selected( $s['claude_effort'], 'medium' ); ?>>Medio</option>
-								<option value="high" <?php selected( $s['claude_effort'], 'high' ); ?>>Alto</option>
-							</select>
-							<p class="description">No aplica a Claude Haiku 4.5.</p>
-						</td>
-					</tr>
-					<tr>
-						<th>Productos fuera del catálogo</th>
-						<td>
-							<label><input type="checkbox" name="<?php echo $f( 'web_search' ); ?>" value="1" <?php checked( $s['web_search'], 1 ); ?>> Verificar en la web si se venden</label>
-							<p class="description">Si el cliente pide una licencia, suscripción o equipo que no está en el catálogo ni en "Lo que no ofrecemos", el agente busca si se vende abiertamente en línea en EE. UU. o Ecuador. Si se vende, lo trata como un producto más; si no es concluyente, deriva a un representante. Nunca menciona precios encontrados. Funciona con ambos proveedores: con Claude usa la búsqueda web de Anthropic (US$10 por cada 1.000 búsquedas, máximo 3 por mensaje); con Gemini hace una consulta aparte con la búsqueda de Google, que se factura según la tarifa de Google. Desactivada, esos casos siempre se derivan a un representante.</p>
-						</td>
-					</tr>
-					<?php self::key_row( 'gemini', 'API key de Gemini', 'aistudio.google.com', $s ); ?>
-					<tr>
-						<th><label for="qhatuq-gemini-model">Modelo de Gemini</label></th>
-						<td>
-							<input type="text" id="qhatuq-gemini-model" class="regular-text" name="<?php echo $f( 'gemini_model' ); ?>" value="<?php echo esc_attr( $s['gemini_model'] ); ?>">
-							<p class="description">Identificador del modelo en la API de Gemini (ej.: <code>gemini-3-flash-preview</code>). Google retira modelos con frecuencia: verifique que siga disponible.</p>
-						</td>
-					</tr>
-				</table>
+				<?php /* ------------------------------------------------ General */ ?>
+				<section class="qhatuq-tab" data-tab="general">
+					<table class="form-table" role="presentation">
+						<tr>
+							<th>Estado</th>
+							<td><label><input type="checkbox" name="<?php echo $f( 'enabled' ); ?>" value="1" <?php checked( $s['enabled'], 1 ); ?>> Mostrar el chat en el sitio</label></td>
+						</tr>
+						<tr>
+							<th>Proveedor</th>
+							<td>
+								<label><input type="radio" name="<?php echo $f( 'provider' ); ?>" value="claude" <?php checked( $s['provider'], 'claude' ); ?>> Claude (Anthropic)</label>&nbsp;&nbsp;
+								<label><input type="radio" name="<?php echo $f( 'provider' ); ?>" value="gemini" <?php checked( $s['provider'], 'gemini' ); ?>> Gemini (Google)</label>
+								<p class="description">Las conversaciones ya iniciadas terminan con el proveedor y el modelo con que empezaron.</p>
+							</td>
+						</tr>
+					</table>
 
-				<h2 class="title">Empresa y personalidad</h2>
-				<table class="form-table" role="presentation">
-					<tr>
-						<th><label for="qhatuq-company">Nombre de la empresa</label></th>
-						<td><input type="text" id="qhatuq-company" class="regular-text" name="<?php echo $f( 'company_name' ); ?>" value="<?php echo esc_attr( $s['company_name'] ); ?>"></td>
-					</tr>
-					<tr>
-						<th><label for="qhatuq-desc">Descripción de la empresa</label></th>
-						<td>
-							<textarea id="qhatuq-desc" class="large-text" rows="5" name="<?php echo $f( 'company_description' ); ?>"><?php echo esc_textarea( $s['company_description'] ); ?></textarea>
-							<p class="description">A qué se dedica, dónde atiende, a quién vende, qué la diferencia, horarios, formas de contacto…</p>
-						</td>
-					</tr>
-					<tr>
-						<th><label for="qhatuq-agent">Nombre del agente</label></th>
-						<td><input type="text" id="qhatuq-agent" class="regular-text" name="<?php echo $f( 'agent_name' ); ?>" value="<?php echo esc_attr( $s['agent_name'] ); ?>"></td>
-					</tr>
-					<tr>
-						<th>Trato al cliente</th>
-						<td>
-							<label><input type="radio" name="<?php echo $f( 'treatment' ); ?>" value="usted" <?php checked( $s['treatment'], 'usted' ); ?>> Usted</label>&nbsp;&nbsp;
-							<label><input type="radio" name="<?php echo $f( 'treatment' ); ?>" value="tu" <?php checked( $s['treatment'], 'tu' ); ?>> Tú</label>
-						</td>
-					</tr>
-					<tr>
-						<th><label for="qhatuq-greeting">Saludo inicial</label></th>
-						<td><input type="text" id="qhatuq-greeting" class="large-text" name="<?php echo $f( 'greeting' ); ?>" value="<?php echo esc_attr( $s['greeting'] ); ?>"></td>
-					</tr>
-					<tr>
-						<th><label for="qhatuq-prohib">Prohibiciones</label></th>
-						<td>
-							<textarea id="qhatuq-prohib" class="large-text" rows="7" name="<?php echo $f( 'prohibitions' ); ?>"><?php echo esc_textarea( $s['prohibitions'] ); ?></textarea>
-							<p class="description">Una por línea. El agente nunca hará estas cosas, aunque el cliente insista.</p>
-						</td>
-					</tr>
-					<tr>
-						<th><label for="qhatuq-criteria">Criterios de temperatura del lead</label></th>
-						<td><textarea id="qhatuq-criteria" class="large-text" rows="4" name="<?php echo $f( 'lead_criteria' ); ?>"><?php echo esc_textarea( $s['lead_criteria'] ); ?></textarea></td>
-					</tr>
-					<tr>
-						<th><label for="qhatuq-extra">Indicaciones adicionales</label></th>
-						<td>
-							<textarea id="qhatuq-extra" class="large-text" rows="4" name="<?php echo $f( 'extra_instructions' ); ?>"><?php echo esc_textarea( $s['extra_instructions'] ); ?></textarea>
-							<p class="description">Opcional. Respuestas a objeciones frecuentes, casos de éxito que puede mencionar, etc.</p>
-						</td>
-					</tr>
-				</table>
+					<h2 class="title">Claude</h2>
+					<table class="form-table" role="presentation">
+						<?php self::key_row( 'claude', 'API key de Claude', 'platform.claude.com', $s ); ?>
+						<tr>
+							<th><label for="qhatuq-claude-model">Modelo</label></th>
+							<td>
+								<select id="qhatuq-claude-model" name="<?php echo $f( 'claude_model' ); ?>">
+									<?php foreach ( Qhatuq_Settings::CLAUDE_MODELS as $id => $label ) : ?>
+										<option value="<?php echo esc_attr( $id ); ?>" <?php selected( $s['claude_model'], $id ); ?>><?php echo esc_html( $label ); ?></option>
+									<?php endforeach; ?>
+								</select>
+							</td>
+						</tr>
+						<tr>
+							<th><label for="qhatuq-effort">Nivel de razonamiento</label></th>
+							<td>
+								<select id="qhatuq-effort" name="<?php echo $f( 'claude_effort' ); ?>">
+									<option value="low" <?php selected( $s['claude_effort'], 'low' ); ?>>Bajo (recomendado para chat: más rápido y económico)</option>
+									<option value="medium" <?php selected( $s['claude_effort'], 'medium' ); ?>>Medio</option>
+									<option value="high" <?php selected( $s['claude_effort'], 'high' ); ?>>Alto</option>
+								</select>
+								<p class="description">No aplica a Claude Haiku 4.5.</p>
+							</td>
+						</tr>
+					</table>
 
-				<h2 class="title">Avisos y privacidad</h2>
-				<table class="form-table" role="presentation">
-					<tr>
-						<th><label for="qhatuq-emails">Correos para avisos de leads</label></th>
-						<td>
-							<input type="text" id="qhatuq-emails" class="large-text" name="<?php echo $f( 'notify_emails' ); ?>" value="<?php echo esc_attr( $s['notify_emails'] ); ?>">
-							<p class="description">Separados por coma. Se avisa una vez por lead, cuando tiene un medio de contacto y una necesidad.</p>
-						</td>
-					</tr>
-					<tr>
-						<th><label for="qhatuq-notice">Aviso en el chat</label></th>
-						<td><textarea id="qhatuq-notice" class="large-text" rows="2" name="<?php echo $f( 'privacy_notice' ); ?>"><?php echo esc_textarea( $s['privacy_notice'] ); ?></textarea></td>
-					</tr>
-					<tr>
-						<th><label for="qhatuq-privacy">URL de la política de privacidad</label></th>
-						<td>
-							<input type="url" id="qhatuq-privacy" class="large-text" name="<?php echo $f( 'privacy_url' ); ?>" value="<?php echo esc_attr( $s['privacy_url'] ); ?>">
-							<p class="description">Recuerde mencionar en ella que las conversaciones del chat se procesan con un proveedor de IA externo (Anthropic o Google).</p>
-						</td>
-					</tr>
-					<tr>
-						<th><label for="qhatuq-retention">Conservar conversaciones</label></th>
-						<td><input type="number" id="qhatuq-retention" min="0" max="3650" name="<?php echo $f( 'retention_days' ); ?>" value="<?php echo esc_attr( $s['retention_days'] ); ?>"> días <span class="description">(0 = no borrar nunca; los leads se conservan siempre)</span></td>
-					</tr>
-				</table>
+					<h2 class="title">Gemini</h2>
+					<table class="form-table" role="presentation">
+						<?php self::key_row( 'gemini', 'API key de Gemini', 'aistudio.google.com', $s ); ?>
+						<tr>
+							<th><label for="qhatuq-gemini-model">Modelo</label></th>
+							<td>
+								<input type="text" id="qhatuq-gemini-model" class="regular-text" name="<?php echo $f( 'gemini_model' ); ?>" value="<?php echo esc_attr( $s['gemini_model'] ); ?>">
+								<p class="description">Identificador del modelo en la API de Gemini (ej.: <code>gemini-3-flash-preview</code>). Google retira modelos con frecuencia: verifique que siga disponible.</p>
+							</td>
+						</tr>
+					</table>
 
-				<h2 class="title">WhatsApp</h2>
-				<table class="form-table" role="presentation">
-					<tr>
-						<th><label for="qhatuq-wa-cc">Código de país por defecto</label></th>
-						<td>
-							+<input type="text" id="qhatuq-wa-cc" name="<?php echo $f( 'whatsapp_country' ); ?>" value="<?php echo esc_attr( $s['whatsapp_country'] ); ?>" style="width:70px">
-							<p class="description">Se usa para los teléfonos escritos sin código de país (en Ecuador, 593: 0991234567 → +593 99 123 4567). Los teléfonos fijos no muestran el ícono de WhatsApp.</p>
-						</td>
-					</tr>
-					<tr>
-						<th><label for="qhatuq-wa-msg">Mensaje inicial</label></th>
-						<td>
-							<textarea id="qhatuq-wa-msg" class="large-text" rows="2" name="<?php echo $f( 'whatsapp_message' ); ?>"><?php echo esc_textarea( $s['whatsapp_message'] ); ?></textarea>
-							<p class="description">Texto que aparece escrito al abrir WhatsApp; puede editarse antes de enviar. Variables: {nombre} (primer nombre del cliente), {empresa} (su institución) y {sitio} (el nombre de este sitio). Déjelo vacío para abrir el chat sin texto.</p>
-						</td>
-					</tr>
-				</table>
+					<h2 class="title">Productos fuera del catálogo</h2>
+					<table class="form-table" role="presentation">
+						<tr>
+							<th>Verificación web</th>
+							<td>
+								<label><input type="checkbox" name="<?php echo $f( 'web_search' ); ?>" value="1" <?php checked( $s['web_search'], 1 ); ?>> Verificar en la web si se venden</label>
+								<p class="description">Si el cliente pide una licencia, suscripción o equipo que no está en el catálogo ni en "Lo que no ofrecemos", el agente busca si se vende abiertamente en línea en EE. UU. o Ecuador. Si se vende, lo trata como un producto más; si no es concluyente, deriva a un representante. Nunca menciona precios encontrados. Con Claude usa la búsqueda web de Anthropic (US$10 por cada 1.000 búsquedas, máximo 3 por mensaje); con Gemini hace una consulta aparte con la búsqueda de Google, que se factura según la tarifa de Google. Desactivada, esos casos siempre se derivan a un representante.</p>
+							</td>
+						</tr>
+					</table>
+				</section>
 
-				<h2 class="title">Resúmenes por correo</h2>
-				<table class="form-table" role="presentation">
-					<tr>
-						<th>Resumen de cada conversación</th>
-						<td>
-							<label><input type="checkbox" name="<?php echo $f( 'summary_enabled' ); ?>" value="1" <?php checked( $s['summary_enabled'], 1 ); ?>> Enviar un resumen cuando la conversación termina</label>
-							<p>
-								Se considera terminada tras
-								<input type="number" min="10" max="1440" name="<?php echo $f( 'summary_idle_minutes' ); ?>" value="<?php echo esc_attr( $s['summary_idle_minutes'] ); ?>" style="width:80px">
-								minutos sin mensajes.
-							</p>
-							<p><label><input type="checkbox" name="<?php echo $f( 'summary_all' ); ?>" value="1" <?php checked( $s['summary_all'], 1 ); ?>> Enviar también las conversaciones sin interés comercial</label></p>
-							<p class="description">El correo incluye un resumen hecho por la IA (qué buscaba, qué datos dejó, qué quedó pendiente y un siguiente paso sugerido) y avisa cuando un interesado se fue sin dejar contacto. Se envía a los mismos correos de avisos de leads. Si el visitante retoma la conversación, se envía otro resumen al terminar.</p>
-						</td>
-					</tr>
-					<tr>
-						<th>Resumen semanal</th>
-						<td>
-							<label><input type="checkbox" name="<?php echo $f( 'weekly_digest' ); ?>" value="1" <?php checked( $s['weekly_digest'], 1 ); ?>> Enviar los lunes a las 8:00 un resumen de la semana</label>
-							<p class="description">Conversaciones por interés, leads nuevos, interesados sin contacto y productos fuera del catálogo que pidieron. Solo se envía si hubo actividad.</p>
-						</td>
-					</tr>
-				</table>
-				<?php if ( defined( 'DISABLE_WP_CRON' ) && DISABLE_WP_CRON ) : ?>
-					<p class="description">WP-Cron está desactivado en wp-config.php: asegúrese de tener una tarea programada en el servidor que ejecute wp-cron.php.</p>
-				<?php else : ?>
-					<p class="description"><strong>Importante:</strong> WordPress ejecuta las tareas programadas solo cuando alguien visita el sitio. Con poco tráfico, los resúmenes pueden demorar. Para que salgan a tiempo, cree en Plesk una tarea programada cada 5 minutos que abra <code><?php echo esc_html( site_url( 'wp-cron.php?doing_wp_cron' ) ); ?></code>.</p>
-				<?php endif; ?>
+				<?php /* ------------------------------------------------ Agente */ ?>
+				<section class="qhatuq-tab" data-tab="agente">
+					<h2 class="title">Empresa</h2>
+					<table class="form-table" role="presentation">
+						<tr>
+							<th><label for="qhatuq-company">Nombre de la empresa</label></th>
+							<td><input type="text" id="qhatuq-company" class="regular-text" name="<?php echo $f( 'company_name' ); ?>" value="<?php echo esc_attr( $s['company_name'] ); ?>"></td>
+						</tr>
+						<tr>
+							<th><label for="qhatuq-desc">Descripción de la empresa</label></th>
+							<td>
+								<textarea id="qhatuq-desc" class="large-text" rows="5" name="<?php echo $f( 'company_description' ); ?>"><?php echo esc_textarea( $s['company_description'] ); ?></textarea>
+								<p class="description">A qué se dedica, dónde atiende, a quién vende, qué la diferencia, horarios, formas de contacto…</p>
+							</td>
+						</tr>
+					</table>
 
-				<h2 class="title">Apariencia y límites</h2>
-				<table class="form-table" role="presentation">
-					<tr>
-						<th><label for="qhatuq-title">Título del chat</label></th>
-						<td><input type="text" id="qhatuq-title" class="regular-text" name="<?php echo $f( 'widget_title' ); ?>" value="<?php echo esc_attr( $s['widget_title'] ); ?>"></td>
-					</tr>
-					<tr>
-						<th>Foto del agente</th>
-						<td>
-							<?php $avatar = Qhatuq_Settings::avatar_url(); ?>
-							<div class="qhatuq-avatar-field">
-								<span class="qhatuq-avatar-preview" style="<?php echo $avatar ? '' : 'display:none'; ?>"><img src="<?php echo esc_url( $avatar ); ?>" alt=""></span>
-								<span class="qhatuq-avatar-empty" style="<?php echo $avatar ? 'display:none' : ''; ?>"><?php echo esc_html( mb_strtoupper( mb_substr( $s['agent_name'] ? $s['agent_name'] : 'A', 0, 1 ) ) ); ?></span>
-								<input type="hidden" id="qhatuq-avatar-id" name="<?php echo $f( 'widget_avatar_id' ); ?>" value="<?php echo esc_attr( (int) $s['widget_avatar_id'] ); ?>">
-								<input type="hidden" id="qhatuq-avatar-url" name="<?php echo $f( 'widget_avatar' ); ?>" value="<?php echo esc_attr( $s['widget_avatar'] ); ?>">
-								<button type="button" class="button" id="qhatuq-avatar-pick"><?php echo $avatar ? 'Cambiar foto' : 'Subir o elegir foto'; ?></button>
-								<button type="button" class="button-link button-link-delete" id="qhatuq-avatar-remove" style="<?php echo $avatar ? '' : 'display:none'; ?>">Quitar</button>
+					<h2 class="title">Personalidad</h2>
+					<table class="form-table" role="presentation">
+						<tr>
+							<th><label for="qhatuq-agent">Nombre del agente</label></th>
+							<td><input type="text" id="qhatuq-agent" class="regular-text" name="<?php echo $f( 'agent_name' ); ?>" value="<?php echo esc_attr( $s['agent_name'] ); ?>"></td>
+						</tr>
+						<tr>
+							<th>Trato al cliente</th>
+							<td>
+								<label><input type="radio" name="<?php echo $f( 'treatment' ); ?>" value="usted" <?php checked( $s['treatment'], 'usted' ); ?>> Usted</label>&nbsp;&nbsp;
+								<label><input type="radio" name="<?php echo $f( 'treatment' ); ?>" value="tu" <?php checked( $s['treatment'], 'tu' ); ?>> Tú</label>
+							</td>
+						</tr>
+						<tr>
+							<th><label for="qhatuq-greeting">Saludo inicial</label></th>
+							<td>
+								<input type="text" id="qhatuq-greeting" class="large-text" name="<?php echo $f( 'greeting' ); ?>" value="<?php echo esc_attr( $s['greeting'] ); ?>">
+								<p class="description">Las páginas de un servicio pueden tener su propio saludo (se configura en cada producto o servicio).</p>
+							</td>
+						</tr>
+					</table>
+
+					<h2 class="title">Reglas</h2>
+					<table class="form-table" role="presentation">
+						<tr>
+							<th><label for="qhatuq-prohib">Prohibiciones</label></th>
+							<td>
+								<textarea id="qhatuq-prohib" class="large-text" rows="7" name="<?php echo $f( 'prohibitions' ); ?>"><?php echo esc_textarea( $s['prohibitions'] ); ?></textarea>
+								<p class="description">Una por línea. El agente nunca hará estas cosas, aunque el cliente insista.</p>
+							</td>
+						</tr>
+						<tr>
+							<th><label for="qhatuq-criteria">Criterios de temperatura del lead</label></th>
+							<td><textarea id="qhatuq-criteria" class="large-text" rows="4" name="<?php echo $f( 'lead_criteria' ); ?>"><?php echo esc_textarea( $s['lead_criteria'] ); ?></textarea></td>
+						</tr>
+						<tr>
+							<th><label for="qhatuq-extra">Indicaciones adicionales</label></th>
+							<td>
+								<textarea id="qhatuq-extra" class="large-text" rows="6" name="<?php echo $f( 'extra_instructions' ); ?>"><?php echo esc_textarea( $s['extra_instructions'] ); ?></textarea>
+								<p class="description">Opcional. Respuestas a objeciones frecuentes, políticas (listas de precios, ubicación), casos de éxito que puede mencionar, etc.</p>
+							</td>
+						</tr>
+					</table>
+				</section>
+
+				<?php /* ------------------------------------------------ Apariencia */ ?>
+				<section class="qhatuq-tab" data-tab="apariencia">
+					<div class="qhatuq-appearance">
+						<div class="qhatuq-appearance-fields">
+							<table class="form-table" role="presentation">
+								<tr>
+									<th>Tema</th>
+									<td>
+										<?php foreach ( Qhatuq_Settings::THEMES as $id => list( $label, $desc ) ) : ?>
+											<label class="qhatuq-choice">
+												<input type="radio" name="<?php echo $f( 'widget_theme' ); ?>" value="<?php echo esc_attr( $id ); ?>" <?php checked( $s['widget_theme'], $id ); ?>>
+												<span><strong><?php echo esc_html( $label ); ?></strong><br><span class="description"><?php echo esc_html( $desc ); ?></span></span>
+											</label>
+										<?php endforeach; ?>
+									</td>
+								</tr>
+								<tr>
+									<th><label for="qhatuq-color">Color de marca</label></th>
+									<td><input type="color" id="qhatuq-color" name="<?php echo $f( 'widget_color' ); ?>" value="<?php echo esc_attr( $s['widget_color'] ); ?>"> <code id="qhatuq-color-code"><?php echo esc_html( $s['widget_color'] ); ?></code></td>
+								</tr>
+								<tr>
+									<th>Foto del agente</th>
+									<td>
+										<?php $avatar = Qhatuq_Settings::avatar_url(); ?>
+										<div class="qhatuq-avatar-field">
+											<span class="qhatuq-avatar-preview" style="<?php echo $avatar ? '' : 'display:none'; ?>"><img src="<?php echo esc_url( $avatar ); ?>" alt=""></span>
+											<span class="qhatuq-avatar-empty" style="<?php echo $avatar ? 'display:none' : ''; ?>"><?php echo esc_html( mb_strtoupper( mb_substr( $s['agent_name'] ? $s['agent_name'] : 'A', 0, 1 ) ) ); ?></span>
+											<input type="hidden" id="qhatuq-avatar-id" name="<?php echo $f( 'widget_avatar_id' ); ?>" value="<?php echo esc_attr( (int) $s['widget_avatar_id'] ); ?>">
+											<input type="hidden" id="qhatuq-avatar-url" name="<?php echo $f( 'widget_avatar' ); ?>" value="<?php echo esc_attr( $s['widget_avatar'] ); ?>">
+											<button type="button" class="button" id="qhatuq-avatar-pick"><?php echo $avatar ? 'Cambiar foto' : 'Subir o elegir foto'; ?></button>
+											<button type="button" class="button-link button-link-delete" id="qhatuq-avatar-remove" style="<?php echo $avatar ? '' : 'display:none'; ?>">Quitar</button>
+										</div>
+										<p class="description">Imagen cuadrada de al menos 200 × 200 px. Sin foto se muestra la inicial del agente.</p>
+									</td>
+								</tr>
+								<tr>
+									<th>Ícono del botón</th>
+									<td>
+										<label class="qhatuq-inline"><input type="radio" name="<?php echo $f( 'launcher_icon' ); ?>" value="chat" <?php checked( $s['launcher_icon'], 'chat' ); ?>> Globo de conversación</label>
+										<label class="qhatuq-inline"><input type="radio" name="<?php echo $f( 'launcher_icon' ); ?>" value="avatar" <?php checked( $s['launcher_icon'], 'avatar' ); ?>> Foto del agente</label>
+									</td>
+								</tr>
+								<tr>
+									<th><label for="qhatuq-launcher-label">Texto del botón</label></th>
+									<td>
+										<input type="text" id="qhatuq-launcher-label" class="regular-text" maxlength="40" name="<?php echo $f( 'launcher_label' ); ?>" value="<?php echo esc_attr( $s['launcher_label'] ); ?>">
+										<p class="description">Solo en el tema Vibrante. Vacío = solo el ícono.</p>
+									</td>
+								</tr>
+								<tr>
+									<th><label for="qhatuq-title">Título del chat</label></th>
+									<td><input type="text" id="qhatuq-title" class="regular-text" name="<?php echo $f( 'widget_title' ); ?>" value="<?php echo esc_attr( $s['widget_title'] ); ?>"></td>
+								</tr>
+								<tr>
+									<th><label for="qhatuq-suggestions">Sugerencias rápidas</label></th>
+									<td>
+										<textarea id="qhatuq-suggestions" class="large-text" rows="4" name="<?php echo $f( 'widget_suggestions' ); ?>"><?php echo esc_textarea( $s['widget_suggestions'] ); ?></textarea>
+										<p class="description">Una por línea, máximo 6. Vacío = no se muestran.</p>
+									</td>
+								</tr>
+								<tr>
+									<th><label for="qhatuq-teaser">Burbuja de invitación</label></th>
+									<td><input type="number" id="qhatuq-teaser" min="0" max="300" name="<?php echo $f( 'teaser_delay' ); ?>" value="<?php echo esc_attr( $s['teaser_delay'] ); ?>" style="width:80px"> segundos <span class="description">(una vez por visita; 0 = desactivada)</span></td>
+								</tr>
+								<tr>
+									<th>Posición</th>
+									<td>
+										<label class="qhatuq-inline"><input type="radio" name="<?php echo $f( 'widget_position' ); ?>" value="right" <?php checked( $s['widget_position'], 'right' ); ?>> Derecha</label>
+										<label class="qhatuq-inline"><input type="radio" name="<?php echo $f( 'widget_position' ); ?>" value="left" <?php checked( $s['widget_position'], 'left' ); ?>> Izquierda</label>
+									</td>
+								</tr>
+							</table>
+						</div>
+						<aside class="qhatuq-preview-col" aria-label="Vista previa">
+							<div class="qhatuq-preview-card">
+								<div class="qhatuq-preview-head">
+									<strong>Vista previa</strong>
+									<a id="qhatuq-preview-site" href="<?php echo esc_url( add_query_arg( 'qhatuq_theme', $s['widget_theme'], home_url( '/' ) ) ); ?>" target="_blank" rel="noopener">Ver en el sitio ↗</a>
+								</div>
+								<div id="qhatuq-preview" class="qhatuq-preview-stage"></div>
+								<p class="description">Se actualiza al cambiar las opciones, antes de guardar. El saludo y el título se toman de las pestañas Agente y Apariencia. "Ver en el sitio" muestra el tema elegido solo a usted.</p>
 							</div>
-							<p class="description">Se muestra en la cabecera del chat y junto a cada respuesta. Use una imagen cuadrada de al menos 200 × 200 px. Sin foto se muestra la inicial del agente.</p>
-						</td>
-					</tr>
-					<tr>
-						<th><label for="qhatuq-suggestions">Sugerencias rápidas</label></th>
-						<td>
-							<textarea id="qhatuq-suggestions" class="large-text" rows="4" name="<?php echo $f( 'widget_suggestions' ); ?>"><?php echo esc_textarea( $s['widget_suggestions'] ); ?></textarea>
-							<p class="description">Botones que se muestran al iniciar el chat; una por línea, máximo 6. Deje vacío para no mostrarlos.</p>
-						</td>
-					</tr>
-					<tr>
-						<th><label for="qhatuq-teaser">Burbuja de invitación</label></th>
-						<td><input type="number" id="qhatuq-teaser" min="0" max="300" name="<?php echo $f( 'teaser_delay' ); ?>" value="<?php echo esc_attr( $s['teaser_delay'] ); ?>"> segundos <span class="description">(muestra el saludo junto al botón tras ese tiempo, una vez por visita; 0 = desactivada)</span></td>
-					</tr>
-					<tr>
-						<th><label for="qhatuq-color">Color</label></th>
-						<td><input type="color" id="qhatuq-color" name="<?php echo $f( 'widget_color' ); ?>" value="<?php echo esc_attr( $s['widget_color'] ); ?>"></td>
-					</tr>
-					<tr>
-						<th>Tema</th>
-						<td>
-							<?php foreach ( Qhatuq_Settings::THEMES as $id => list( $label, $desc ) ) : ?>
-								<label style="display:block;margin-bottom:8px">
-									<input type="radio" name="<?php echo $f( 'widget_theme' ); ?>" value="<?php echo esc_attr( $id ); ?>" <?php checked( $s['widget_theme'], $id ); ?>>
-									<strong><?php echo esc_html( $label ); ?></strong> — <?php echo esc_html( $desc ); ?>
-									<a href="<?php echo esc_url( add_query_arg( 'qhatuq_theme', $id, home_url( '/' ) ) ); ?>" target="_blank" rel="noopener">Vista previa</a>
-								</label>
-							<?php endforeach; ?>
-							<p class="description">La vista previa abre el sitio con ese tema solo para usted (como administrador), sin guardar el cambio.</p>
-						</td>
-					</tr>
-					<tr>
-						<th>Ícono del botón</th>
-						<td>
-							<label style="display:inline-flex;align-items:center;gap:8px;margin-right:24px">
-								<input type="radio" name="<?php echo $f( 'launcher_icon' ); ?>" value="chat" <?php checked( $s['launcher_icon'], 'chat' ); ?>>
-								<span style="width:36px;height:36px;border-radius:50%;background:<?php echo esc_attr( $s['widget_color'] ); ?>;display:inline-flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 3C6.5 3 2 6.8 2 11.5c0 2.4 1.2 4.6 3.1 6.1L4.3 21l4-1.9c1.2.4 2.4.6 3.7.6 5.5 0 10-3.8 10-8.4S17.5 3 12 3z" fill="#fff"/></svg></span>
-								Globo de conversación
-							</label>
-							<label style="display:inline-flex;align-items:center;gap:8px">
-								<input type="radio" name="<?php echo $f( 'launcher_icon' ); ?>" value="avatar" <?php checked( $s['launcher_icon'], 'avatar' ); ?>>
-								<?php $av = Qhatuq_Settings::avatar_url(); ?>
-								<span style="position:relative;width:36px;height:36px;border-radius:50%;overflow:hidden;background:<?php echo esc_attr( $s['widget_color'] ); ?>;color:#fff;font-weight:700;display:inline-flex;align-items:center;justify-content:center">
-									<?php if ( $av ) : ?>
-										<img src="<?php echo esc_url( $av ); ?>" alt="" style="width:100%;height:100%;object-fit:cover">
-									<?php else : ?>
-										<?php echo esc_html( mb_strtoupper( mb_substr( $s['agent_name'] ? $s['agent_name'] : 'A', 0, 1 ) ) ); ?>
-									<?php endif; ?>
-								</span>
-								Foto del agente
-							</label>
-							<p class="description">Lo que ven los visitantes cuando el chat está cerrado. Con "Foto del agente" se muestra la foto configurada arriba (o la inicial del agente si no hay foto) con un indicador de "en línea".</p>
-						</td>
-					</tr>
-					<tr>
-						<th><label for="qhatuq-launcher-label">Texto del botón</label></th>
-						<td>
-							<input type="text" id="qhatuq-launcher-label" class="regular-text" maxlength="40" name="<?php echo $f( 'launcher_label' ); ?>" value="<?php echo esc_attr( $s['launcher_label'] ); ?>">
-							<p class="description">Solo en el tema Vibrante: texto junto al ícono del botón flotante. Déjelo vacío para mostrar solo el ícono.</p>
-						</td>
-					</tr>
-					<tr>
-						<th>Posición</th>
-						<td>
-							<label><input type="radio" name="<?php echo $f( 'widget_position' ); ?>" value="right" <?php checked( $s['widget_position'], 'right' ); ?>> Derecha</label>&nbsp;&nbsp;
-							<label><input type="radio" name="<?php echo $f( 'widget_position' ); ?>" value="left" <?php checked( $s['widget_position'], 'left' ); ?>> Izquierda</label>
-						</td>
-					</tr>
-					<tr>
-						<th>Límites contra el abuso</th>
-						<td>
-							<p><input type="number" min="4" max="200" name="<?php echo $f( 'max_messages' ); ?>" value="<?php echo esc_attr( $s['max_messages'] ); ?>"> mensajes por conversación</p>
-							<p><input type="number" min="5" max="1000" name="<?php echo $f( 'max_per_ip_hour' ); ?>" value="<?php echo esc_attr( $s['max_per_ip_hour'] ); ?>"> mensajes por hora desde una misma IP</p>
-							<p><input type="number" min="200" max="5000" name="<?php echo $f( 'max_message_chars' ); ?>" value="<?php echo esc_attr( $s['max_message_chars'] ); ?>"> caracteres por mensaje</p>
-						</td>
-					</tr>
-				</table>
+						</aside>
+					</div>
+				</section>
 
-				<?php submit_button( 'Guardar ajustes' ); ?>
+				<?php /* ------------------------------------------------ Avisos */ ?>
+				<section class="qhatuq-tab" data-tab="avisos">
+					<h2 class="title">Avisos de leads</h2>
+					<table class="form-table" role="presentation">
+						<tr>
+							<th><label for="qhatuq-emails">Correos del equipo comercial</label></th>
+							<td>
+								<input type="text" id="qhatuq-emails" class="large-text" name="<?php echo $f( 'notify_emails' ); ?>" value="<?php echo esc_attr( $s['notify_emails'] ); ?>">
+								<p class="description">Separados por coma. Reciben el aviso de cada lead nuevo (una vez, cuando tiene un medio de contacto y una necesidad) y los resúmenes.</p>
+							</td>
+						</tr>
+					</table>
+
+					<h2 class="title">Resúmenes por correo</h2>
+					<table class="form-table" role="presentation">
+						<tr>
+							<th>Resumen de cada conversación</th>
+							<td>
+								<label><input type="checkbox" name="<?php echo $f( 'summary_enabled' ); ?>" value="1" <?php checked( $s['summary_enabled'], 1 ); ?>> Enviar un resumen cuando la conversación termina</label>
+								<p>
+									Se considera terminada tras
+									<input type="number" min="10" max="1440" name="<?php echo $f( 'summary_idle_minutes' ); ?>" value="<?php echo esc_attr( $s['summary_idle_minutes'] ); ?>" style="width:80px">
+									minutos sin mensajes.
+								</p>
+								<p><label><input type="checkbox" name="<?php echo $f( 'summary_all' ); ?>" value="1" <?php checked( $s['summary_all'], 1 ); ?>> Enviar también las conversaciones sin interés comercial</label></p>
+								<p class="description">Resumen hecho por la IA: qué buscaba, qué datos dejó, qué quedó pendiente y un siguiente paso sugerido; avisa cuando un interesado se fue sin dejar contacto.</p>
+							</td>
+						</tr>
+						<tr>
+							<th>Resumen semanal</th>
+							<td>
+								<label><input type="checkbox" name="<?php echo $f( 'weekly_digest' ); ?>" value="1" <?php checked( $s['weekly_digest'], 1 ); ?>> Enviar los lunes a las 8:00 un resumen de la semana</label>
+								<p class="description">Solo se envía si hubo actividad.</p>
+							</td>
+						</tr>
+					</table>
+					<?php if ( defined( 'DISABLE_WP_CRON' ) && DISABLE_WP_CRON ) : ?>
+						<p class="description">WP-Cron está desactivado en wp-config.php: asegúrese de tener una tarea programada en el servidor que ejecute wp-cron.php.</p>
+					<?php else : ?>
+						<div class="notice notice-info inline"><p><strong>Importante:</strong> WordPress ejecuta las tareas programadas solo cuando alguien visita el sitio. Con poco tráfico, los resúmenes pueden demorar. Cree en Plesk una tarea programada cada 5 minutos que abra <code><?php echo esc_html( site_url( 'wp-cron.php?doing_wp_cron' ) ); ?></code>.</p></div>
+					<?php endif; ?>
+
+					<h2 class="title">WhatsApp</h2>
+					<table class="form-table" role="presentation">
+						<tr>
+							<th><label for="qhatuq-wa-cc">Código de país por defecto</label></th>
+							<td>
+								+<input type="text" id="qhatuq-wa-cc" name="<?php echo $f( 'whatsapp_country' ); ?>" value="<?php echo esc_attr( $s['whatsapp_country'] ); ?>" style="width:70px">
+								<p class="description">Para teléfonos escritos sin código de país (Ecuador: 593). Los teléfonos fijos no muestran el ícono de WhatsApp.</p>
+							</td>
+						</tr>
+						<tr>
+							<th><label for="qhatuq-wa-msg">Mensaje inicial</label></th>
+							<td>
+								<textarea id="qhatuq-wa-msg" class="large-text" rows="2" name="<?php echo $f( 'whatsapp_message' ); ?>"><?php echo esc_textarea( $s['whatsapp_message'] ); ?></textarea>
+								<p class="description">Variables: {nombre}, {empresa} y {sitio}. Vacío = abrir el chat sin texto.</p>
+							</td>
+						</tr>
+					</table>
+				</section>
+
+				<?php /* ------------------------------------------------ Privacidad y límites */ ?>
+				<section class="qhatuq-tab" data-tab="privacidad">
+					<h2 class="title">Privacidad</h2>
+					<table class="form-table" role="presentation">
+						<tr>
+							<th><label for="qhatuq-notice">Aviso en el chat</label></th>
+							<td><textarea id="qhatuq-notice" class="large-text" rows="2" name="<?php echo $f( 'privacy_notice' ); ?>"><?php echo esc_textarea( $s['privacy_notice'] ); ?></textarea></td>
+						</tr>
+						<tr>
+							<th><label for="qhatuq-privacy">URL de la política de privacidad</label></th>
+							<td>
+								<input type="url" id="qhatuq-privacy" class="large-text" name="<?php echo $f( 'privacy_url' ); ?>" value="<?php echo esc_attr( $s['privacy_url'] ); ?>">
+								<p class="description">Recuerde mencionar en ella que las conversaciones del chat se procesan con un proveedor de IA externo (Anthropic o Google).</p>
+							</td>
+						</tr>
+						<tr>
+							<th><label for="qhatuq-retention">Conservar conversaciones</label></th>
+							<td><input type="number" id="qhatuq-retention" min="0" max="3650" name="<?php echo $f( 'retention_days' ); ?>" value="<?php echo esc_attr( $s['retention_days'] ); ?>" style="width:90px"> días <span class="description">(0 = no borrar nunca; los leads se conservan siempre)</span></td>
+						</tr>
+					</table>
+
+					<h2 class="title">Límites contra el abuso</h2>
+					<table class="form-table" role="presentation">
+						<tr>
+							<th><label for="qhatuq-max-msg">Por conversación</label></th>
+							<td><input type="number" id="qhatuq-max-msg" min="4" max="200" name="<?php echo $f( 'max_messages' ); ?>" value="<?php echo esc_attr( $s['max_messages'] ); ?>" style="width:90px"> mensajes</td>
+						</tr>
+						<tr>
+							<th><label for="qhatuq-max-ip">Por IP</label></th>
+							<td><input type="number" id="qhatuq-max-ip" min="5" max="1000" name="<?php echo $f( 'max_per_ip_hour' ); ?>" value="<?php echo esc_attr( $s['max_per_ip_hour'] ); ?>" style="width:90px"> mensajes por hora</td>
+						</tr>
+						<tr>
+							<th><label for="qhatuq-max-chars">Largo del mensaje</label></th>
+							<td><input type="number" id="qhatuq-max-chars" min="200" max="5000" name="<?php echo $f( 'max_message_chars' ); ?>" value="<?php echo esc_attr( $s['max_message_chars'] ); ?>" style="width:90px"> caracteres como máximo</td>
+						</tr>
+					</table>
+				</section>
+
+				<div class="qhatuq-save">
+					<?php submit_button( 'Guardar ajustes', 'primary', 'submit', false ); ?>
+				</div>
 			</form>
 
-			<hr>
-			<h2>Probar la conexión</h2>
-			<p>Envía un mensaje corto al proveedor y modelo guardados para comprobar la API key.</p>
-			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-				<input type="hidden" name="action" value="qhatuq_test">
-				<?php wp_nonce_field( 'qhatuq_test' ); ?>
-				<?php submit_button( 'Probar conexión', 'secondary', 'submit', false ); ?>
-			</form>
+			<?php /* ------------------------------------------------ Herramientas (fuera del formulario de ajustes) */ ?>
+			<section class="qhatuq-tab" data-tab="herramientas">
+				<h2 class="title">Probar la conexión</h2>
+				<p>Envía un mensaje corto al proveedor y modelo guardados para comprobar la API key.</p>
+				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+					<input type="hidden" name="action" value="qhatuq_test">
+					<?php wp_nonce_field( 'qhatuq_test' ); ?>
+					<?php submit_button( 'Probar conexión', 'secondary', 'submit', false ); ?>
+				</form>
 
-			<h2>Vista previa de las instrucciones</h2>
-			<p class="description">Así recibe el agente la configuración y el catálogo actuales (los precios no se incluyen).</p>
-			<textarea class="large-text code" rows="16" readonly><?php echo esc_textarea( Qhatuq_Prompt::build( Qhatuq_Agent::web_search_enabled( (string) $s['provider'] ), (string) $s['provider'] ) ); ?></textarea>
+				<h2 class="title">Instrucciones del agente</h2>
+				<p class="description">Así recibe el agente la configuración y el catálogo guardados (los precios no se incluyen).</p>
+				<textarea class="large-text code" rows="18" readonly><?php echo esc_textarea( Qhatuq_Prompt::build( Qhatuq_Agent::web_search_enabled( (string) $s['provider'] ), (string) $s['provider'] ) ); ?></textarea>
+
+				<h2 class="title">Copiar la configuración a otro sitio</h2>
+				<p><a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=qhatuq-transfer' ) ); ?>">Exportar / Importar</a></p>
+			</section>
 		</div>
 		<?php
 	}
