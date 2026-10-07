@@ -135,7 +135,26 @@ class Qhatuq_Agent {
 	}
 
 	public static function ip_hash(): string {
-		$ip = sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ?? '' ) );
-		return hash( 'sha256', $ip . wp_salt( 'auth' ) );
+		return hash( 'sha256', self::client_ip() . wp_salt( 'auth' ) );
+	}
+
+	/**
+	 * IP del visitante. Detrás de Cloudflare o de un proxy, REMOTE_ADDR es la IP del proxy
+	 * y todos los visitantes compartirían el mismo límite; en ese caso se configura de qué
+	 * cabecera leerla. Solo se confía en la cabecera elegida en Ajustes.
+	 */
+	public static function client_ip(): string {
+		$source = (string) Qhatuq_Settings::get( 'ip_source' );
+		$ip     = '';
+		if ( 'cloudflare' === $source && ! empty( $_SERVER['HTTP_CF_CONNECTING_IP'] ) ) {
+			$ip = sanitize_text_field( wp_unslash( $_SERVER['HTTP_CF_CONNECTING_IP'] ) );
+		} elseif ( 'x_forwarded_for' === $source && ! empty( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) {
+			$parts = explode( ',', sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) );
+			$ip    = trim( $parts[0] );
+		}
+		if ( ! filter_var( $ip, FILTER_VALIDATE_IP ) ) {
+			$ip = sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ?? '' ) );
+		}
+		return $ip;
 	}
 }

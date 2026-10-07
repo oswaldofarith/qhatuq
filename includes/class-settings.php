@@ -79,6 +79,9 @@ class Qhatuq_Settings {
 
 			'max_messages'         => 40,
 			'max_per_ip_hour'      => 60,
+			'max_new_conv_ip_hour' => 10,
+			'max_conversations_day' => 100,
+			'ip_source'            => 'remote_addr',
 			'max_message_chars'    => 1500,
 			'retention_days'       => 365,
 
@@ -135,6 +138,7 @@ class Qhatuq_Settings {
 
 		$out['enabled']  = empty( $input['enabled'] ) ? 0 : 1;
 		$out['web_search'] = empty( $input['web_search'] ) ? 0 : 1;
+		$out['ip_source']  = in_array( $input['ip_source'] ?? '', array( 'remote_addr', 'cloudflare', 'x_forwarded_for' ), true ) ? $input['ip_source'] : 'remote_addr';
 		foreach ( array( 'summary_enabled', 'summary_all', 'weekly_digest' ) as $k ) {
 			$out[ $k ] = empty( $input[ $k ] ) ? 0 : 1;
 		}
@@ -184,6 +188,8 @@ class Qhatuq_Settings {
 		$ints = array(
 			'max_messages'      => array( 4, 200 ),
 			'max_per_ip_hour'   => array( 5, 1000 ),
+			'max_new_conv_ip_hour' => array( 1, 200 ),
+			'max_conversations_day' => array( 5, 5000 ),
 			'max_message_chars' => array( 200, 5000 ),
 			'retention_days'    => array( 0, 3650 ),
 			'summary_idle_minutes' => array( 10, 1440 ),

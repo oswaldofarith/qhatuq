@@ -458,12 +458,36 @@ class Qhatuq_Admin {
 					<h2 class="title">Límites contra el abuso</h2>
 					<table class="form-table" role="presentation">
 						<tr>
+							<th><label for="qhatuq-ip-source">IP del visitante</label></th>
+							<td>
+								<select id="qhatuq-ip-source" name="<?php echo $f( 'ip_source' ); ?>">
+									<option value="remote_addr" <?php selected( $s['ip_source'], 'remote_addr' ); ?>>Conexión directa (REMOTE_ADDR) — recomendado</option>
+									<option value="cloudflare" <?php selected( $s['ip_source'], 'cloudflare' ); ?>>Detrás de Cloudflare (CF-Connecting-IP)</option>
+									<option value="x_forwarded_for" <?php selected( $s['ip_source'], 'x_forwarded_for' ); ?>>Detrás de otro proxy (X-Forwarded-For)</option>
+								</select>
+								<p class="description">Cambie esto solo si el sitio está detrás de Cloudflare u otro proxy; si no, todos los visitantes compartirían el mismo límite. No elija una opción de proxy si no lo usa: la cabecera podría falsificarse. IP detectada ahora para usted: <code><?php echo esc_html( Qhatuq_Agent::client_ip() ); ?></code></p>
+							</td>
+						</tr>
+					</table>
+					<table class="form-table" role="presentation">
+						<tr>
 							<th><label for="qhatuq-max-msg">Por conversación</label></th>
 							<td><input type="number" id="qhatuq-max-msg" min="4" max="200" name="<?php echo $f( 'max_messages' ); ?>" value="<?php echo esc_attr( $s['max_messages'] ); ?>" style="width:90px"> mensajes</td>
 						</tr>
 						<tr>
 							<th><label for="qhatuq-max-ip">Por IP</label></th>
 							<td><input type="number" id="qhatuq-max-ip" min="5" max="1000" name="<?php echo $f( 'max_per_ip_hour' ); ?>" value="<?php echo esc_attr( $s['max_per_ip_hour'] ); ?>" style="width:90px"> mensajes por hora</td>
+						</tr>
+						<tr>
+							<th><label for="qhatuq-max-newconv">Conversaciones nuevas por IP</label></th>
+							<td><input type="number" id="qhatuq-max-newconv" min="1" max="200" name="<?php echo $f( 'max_new_conv_ip_hour' ); ?>" value="<?php echo esc_attr( $s['max_new_conv_ip_hour'] ); ?>" style="width:90px"> por hora</td>
+						</tr>
+						<tr>
+							<th><label for="qhatuq-max-day">Tope diario del sitio</label></th>
+							<td>
+								<input type="number" id="qhatuq-max-day" min="5" max="5000" name="<?php echo $f( 'max_conversations_day' ); ?>" value="<?php echo esc_attr( $s['max_conversations_day'] ); ?>" style="width:90px"> conversaciones nuevas por día
+								<p class="description">Protege su presupuesto de IA si un robot abusa del chat. Al alcanzarlo, el chat pide a los visitantes usar los canales de contacto hasta el día siguiente.</p>
+							</td>
 						</tr>
 						<tr>
 							<th><label for="qhatuq-max-chars">Largo del mensaje</label></th>

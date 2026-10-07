@@ -31,8 +31,10 @@ class Qhatuq_Leads {
 			'resumen'   => array( 'summary', 2000 ),
 			'fuera_de_catalogo' => array( 'off_catalog', 1000 ),
 		);
+		$single_line = array( 'name', 'phone', 'company' );
 		foreach ( $map as $key => list( $col, $max ) ) {
-			$val = isset( $in[ $key ] ) && is_scalar( $in[ $key ] ) ? trim( sanitize_textarea_field( (string) $in[ $key ] ) ) : '';
+			$raw = isset( $in[ $key ] ) && is_scalar( $in[ $key ] ) ? (string) $in[ $key ] : '';
+			$val = trim( in_array( $col, $single_line, true ) ? sanitize_text_field( $raw ) : sanitize_textarea_field( $raw ) );
 			if ( '' !== $val ) {
 				$fields[ $col ] = mb_substr( $val, 0, $max );
 			}

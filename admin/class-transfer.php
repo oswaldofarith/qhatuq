@@ -29,7 +29,7 @@ class Qhatuq_Transfer {
 			'avisos'       => array( 'Avisos, WhatsApp y resúmenes por correo', array( 'notify_emails', 'whatsapp_country', 'whatsapp_message', 'summary_enabled', 'summary_idle_minutes', 'summary_all', 'weekly_digest' ), true ),
 			'privacidad'   => array( 'Privacidad (aviso del chat, URL de la política, retención)', array( 'privacy_notice', 'privacy_url', 'retention_days' ), false ),
 			'apariencia'   => array( 'Apariencia (tema, título, color, posición, sugerencias, invitación)', array( 'widget_theme', 'launcher_label', 'launcher_icon', 'widget_title', 'widget_color', 'widget_position', 'widget_suggestions', 'teaser_delay' ), false ),
-			'limites'      => array( 'Límites contra el abuso', array( 'max_messages', 'max_per_ip_hour', 'max_message_chars' ), true ),
+			'limites'      => array( 'Límites contra el abuso', array( 'max_messages', 'max_per_ip_hour', 'max_new_conv_ip_hour', 'max_conversations_day', 'max_message_chars' ), true ),
 		);
 	}
 

@@ -51,7 +51,13 @@ class Qhatuq_Catalog {
 			'show_in_menu' => 'qhatuq',
 			'show_in_rest' => false,
 			'supports'     => array( 'title', 'editor' ),
-			'map_meta_cap' => true,
+			// El catálogo alimenta las instrucciones del agente: solo los administradores
+			// pueden crearlo o editarlo (no autores ni colaboradores).
+			'map_meta_cap' => false,
+			'capabilities' => array_fill_keys(
+				array( 'edit_post', 'read_post', 'delete_post', 'edit_posts', 'edit_others_posts', 'delete_posts', 'delete_others_posts', 'publish_posts', 'read_private_posts', 'create_posts', 'edit_published_posts', 'delete_published_posts', 'edit_private_posts', 'delete_private_posts' ),
+				'manage_options'
+			),
 		);
 
 		register_post_type(

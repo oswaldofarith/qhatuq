@@ -78,6 +78,13 @@ class Qhatuq_Rest {
 		$new_token = null;
 
 		if ( ! Qhatuq_Agent::verify( $conv, $token ) ) {
+			// Topes de costo: conversaciones nuevas por IP y por día en todo el sitio.
+			if ( ! self::counter_allows( 'qhatuq_newconv_' . substr( Qhatuq_Agent::ip_hash(), 0, 32 ), (int) $s['max_new_conv_ip_hour'], HOUR_IN_SECONDS ) ) {
+				return self::error( 'rate_limited', 'Ha iniciado muchas conversaciones seguidas. Intente de nuevo en un rato.', 429 );
+			}
+			if ( ! self::counter_allows( 'qhatuq_conv_day_' . wp_date( 'Ymd' ), (int) $s['max_conversations_day'], DAY_IN_SECONDS ) ) {
+				return self::error( 'daily_limit', 'En este momento el asistente no puede atender más consultas. Escríbanos por nuestros canales de contacto y le responderemos a la brevedad.', 429 );
+			}
 			list( $conv, $new_token ) = Qhatuq_Agent::start( $page_url );
 		}
 
@@ -87,15 +94,16 @@ class Qhatuq_Rest {
 
 		// Evita que dos mensajes simultáneos de la misma conversación pisen el historial.
 		$lock = 'qhatuq_lock_' . $conv['id'];
-		if ( get_transient( $lock ) ) {
+		if ( ! self::acquire_lock( $lock ) ) {
 			return self::error( 'busy', 'Estoy respondiendo su mensaje anterior, un momento por favor.', 409 );
 		}
-		set_transient( $lock, 1, 120 );
 
 		try {
+			// Se relee la conversación ya con el bloqueo, por si otro mensaje la acaba de actualizar.
+			$conv   = Qhatuq_DB::get_conversation( (int) $conv['id'] );
 			$result = Qhatuq_Agent::reply( $conv, $message, $page_url, absint( $req->get_param( 'context_offer' ) ) );
 		} finally {
-			delete_transient( $lock );
+			delete_option( $lock );
 		}
 
 		$data = array(
@@ -131,6 +139,33 @@ class Qhatuq_Rest {
 				),
 			)
 		);
+	}
+
+	/**
+	 * Bloqueo atómico: add_option() es un INSERT que falla si la fila ya existe, así que
+	 * dos peticiones simultáneas no pueden obtenerlo a la vez. Un bloqueo de más de dos
+	 * minutos se considera abandonado (por ejemplo, si PHP se cortó a mitad del turno).
+	 */
+	private static function acquire_lock( string $name ): bool {
+		if ( add_option( $name, time(), '', false ) ) {
+			return true;
+		}
+		$since = (int) get_option( $name );
+		if ( $since && time() - $since > 2 * MINUTE_IN_SECONDS ) {
+			delete_option( $name );
+			return add_option( $name, time(), '', false );
+		}
+		return false;
+	}
+
+	/** Contador con ventana de tiempo; devuelve false si ya alcanzó el máximo. */
+	private static function counter_allows( string $key, int $max, int $window ): bool {
+		$count = (int) get_transient( $key );
+		if ( $count >= $max ) {
+			return false;
+		}
+		set_transient( $key, $count + 1, $window );
+		return true;
 	}
 
 	private static function within_ip_limit( int $max ): bool {

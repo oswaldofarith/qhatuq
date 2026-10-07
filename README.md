@@ -115,6 +115,14 @@ Navegador (widget) ──► /wp-json/qhatuq/v1/chat ──► Qhatuq_Agent ─�
 - **Errores y rechazos.** Si la API falla o el modelo rechaza un mensaje, el visitante recibe una respuesta amable y el error queda registrado en la conversación.
 - **Retención de datos.** Las conversaciones se borran pasado el plazo configurado (365 días por defecto). Los leads se conservan.
 
+## Seguridad
+
+- **Chat público:** cada conversación se protege con un token secreto. Hay límites por mensaje, por conversación, por IP (mensajes y conversaciones nuevas por hora) y un **tope diario de conversaciones** en todo el sitio, que protege el presupuesto de IA ante abusos.
+- **Mensajes simultáneos:** un bloqueo atómico impide que dos mensajes a la vez pisen el historial de una conversación.
+- **Proxy:** si el sitio está detrás de Cloudflare u otro proxy, configure de dónde se toma la IP en Ajustes → Privacidad y límites. Si no hay proxy, deje la opción por defecto.
+- **Catálogo:** solo los administradores pueden crearlo o editarlo, porque alimenta las instrucciones del agente.
+- **Panel:** todas las acciones del panel exigen permisos de administrador y un nonce de WordPress. Las consultas a la base de datos son parametrizadas, los textos se escapan al mostrarlos y las API keys nunca se exportan ni se envían al navegador.
+
 ## Notas para los sitios de Hanaq
 
 - **Tareas programadas (importante para los resúmenes):** WordPress ejecuta sus tareas programadas (WP-Cron) solo cuando alguien visita el sitio. Con poco tráfico, los resúmenes pueden demorar horas. En Plesk, vaya a **Herramientas y configuración → Tareas programadas** (o "Tareas programadas" del dominio) y cree una tarea cada 5 minutos que abra la URL `https://SU-SITIO/wp-cron.php?doing_wp_cron`. Opcionalmente, agregue `define( 'DISABLE_WP_CRON', true );` en `wp-config.php` para que solo se ejecute con esa tarea.
