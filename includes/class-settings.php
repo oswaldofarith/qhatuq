@@ -16,6 +16,13 @@ class Qhatuq_Settings {
 		'claude-haiku-4-5'  => 'Claude Haiku 4.5 (US$1 / US$5 por millón de tokens)',
 	);
 
+	/** Temas visuales del chat. */
+	const THEMES = array(
+		'clasico'  => array( 'Clásico', 'Cabecera blanca con una línea del color de marca. Limpio y neutro; combina con casi cualquier sitio.' ),
+		'oscuro'   => array( 'Oscuro', 'Fondo oscuro con detalles en el color de marca. Ideal para sitios de diseño oscuro o más sobrio.' ),
+		'vibrante' => array( 'Vibrante', 'Cabecera con degradado del color de marca, fondo de conversación teñido y botón tipo píldora con texto.' ),
+	);
+
 	public static function defaults(): array {
 		return array(
 			'enabled'              => 1,
@@ -61,6 +68,8 @@ class Qhatuq_Settings {
 
 			'widget_color'         => '#0b5cab',
 			'widget_position'      => 'right',
+			'widget_theme'         => 'clasico',
+			'launcher_label'       => '¿Hablamos?',
 			'widget_title'         => 'Asesor comercial',
 			'widget_avatar'        => '',
 			'widget_avatar_id'     => 0,
@@ -162,6 +171,8 @@ class Qhatuq_Settings {
 		$color                  = sanitize_hex_color( $input['widget_color'] ?? '' );
 		$out['widget_color']    = $color ? $color : $defaults['widget_color'];
 		$out['widget_position'] = 'left' === ( $input['widget_position'] ?? '' ) ? 'left' : 'right';
+		$out['widget_theme']    = array_key_exists( $input['widget_theme'] ?? '', self::THEMES ) ? $input['widget_theme'] : 'clasico';
+		$out['launcher_label']  = mb_substr( sanitize_text_field( $input['launcher_label'] ?? '' ), 0, 40 );
 		$out['widget_avatar']   = esc_url_raw( $input['widget_avatar'] ?? '' );
 		$avatar_id              = absint( $input['widget_avatar_id'] ?? 0 );
 		$out['widget_avatar_id'] = $avatar_id && wp_attachment_is_image( $avatar_id ) ? $avatar_id : 0;

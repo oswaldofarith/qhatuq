@@ -329,6 +329,26 @@ class Qhatuq_Admin {
 						<td><input type="color" id="qhatuq-color" name="<?php echo $f( 'widget_color' ); ?>" value="<?php echo esc_attr( $s['widget_color'] ); ?>"></td>
 					</tr>
 					<tr>
+						<th>Tema</th>
+						<td>
+							<?php foreach ( Qhatuq_Settings::THEMES as $id => list( $label, $desc ) ) : ?>
+								<label style="display:block;margin-bottom:8px">
+									<input type="radio" name="<?php echo $f( 'widget_theme' ); ?>" value="<?php echo esc_attr( $id ); ?>" <?php checked( $s['widget_theme'], $id ); ?>>
+									<strong><?php echo esc_html( $label ); ?></strong> — <?php echo esc_html( $desc ); ?>
+									<a href="<?php echo esc_url( add_query_arg( 'qhatuq_theme', $id, home_url( '/' ) ) ); ?>" target="_blank" rel="noopener">Vista previa</a>
+								</label>
+							<?php endforeach; ?>
+							<p class="description">La vista previa abre el sitio con ese tema solo para usted (como administrador), sin guardar el cambio.</p>
+						</td>
+					</tr>
+					<tr>
+						<th><label for="qhatuq-launcher-label">Texto del botón</label></th>
+						<td>
+							<input type="text" id="qhatuq-launcher-label" class="regular-text" maxlength="40" name="<?php echo $f( 'launcher_label' ); ?>" value="<?php echo esc_attr( $s['launcher_label'] ); ?>">
+							<p class="description">Solo en el tema Vibrante: texto junto al ícono del botón flotante. Déjelo vacío para mostrar solo el ícono.</p>
+						</td>
+					</tr>
+					<tr>
 						<th>Posición</th>
 						<td>
 							<label><input type="radio" name="<?php echo $f( 'widget_position' ); ?>" value="right" <?php checked( $s['widget_position'], 'right' ); ?>> Derecha</label>&nbsp;&nbsp;

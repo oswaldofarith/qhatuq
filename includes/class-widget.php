@@ -11,6 +11,15 @@ class Qhatuq_Widget {
 		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'enqueue' ) );
 	}
 
+	/** Tema activo; un administrador puede previsualizar otro con ?qhatuq_theme=… */
+	private static function theme( array $s ): string {
+		$preview = sanitize_key( wp_unslash( $_GET['qhatuq_theme'] ?? '' ) ); // phpcs:ignore WordPress.Security.NonceVerification
+		if ( $preview && array_key_exists( $preview, Qhatuq_Settings::THEMES ) && current_user_can( 'manage_options' ) ) {
+			return $preview;
+		}
+		return (string) $s['widget_theme'];
+	}
+
 	public static function enqueue(): void {
 		$s = Qhatuq_Settings::all();
 		if ( empty( $s['enabled'] ) || '' === Qhatuq_Settings::api_key( $s['provider'] ) ) {
@@ -50,6 +59,8 @@ class Qhatuq_Widget {
 				'privacyUrl'    => $s['privacy_url'],
 				'color'         => $s['widget_color'],
 				'position'      => $s['widget_position'],
+				'theme'         => self::theme( $s ),
+				'launcherLabel' => $s['launcher_label'],
 				'avatar'        => Qhatuq_Settings::avatar_url(),
 				'suggestions'   => $suggestions,
 				'teaserDelay'   => (int) $s['teaser_delay'],

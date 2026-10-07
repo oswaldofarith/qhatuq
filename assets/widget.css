@@ -382,3 +382,116 @@ svg { width: 100%; height: 100%; display: block; }
 	.input { font-size: 16px; } /* evita el zoom automático de iOS */
 	.teaser { max-width: calc(100vw - 32px); }
 }
+
+/* ================================================================
+   Temas. El tema "clasico" es el diseño base de arriba; los demás
+   solo redefinen variables y algunos detalles.
+   ================================================================ */
+
+/* La etiqueta del botón solo se muestra en los temas que la usan. */
+.launcher-label { display: none; }
+
+/* ---------------------------------------------------------------- Oscuro */
+.theme-oscuro {
+	--bg: #111827;
+	--surface: #0b1220;
+	--text: #e5e7eb;
+	--muted: #9ca3af;
+	--line: #1f2937;
+	--shadow-lg: 0 24px 60px -12px rgba(0, 0, 0, .65), 0 8px 20px -8px rgba(0, 0, 0, .5);
+	color-scheme: dark;
+}
+.theme-oscuro .panel { border-color: #1f2937; }
+.theme-oscuro .header { background: #0f172a; }
+.theme-oscuro .assistant .bubble { background: #1f2937; border-color: #273244; }
+.theme-oscuro .assistant .bubble a { color: color-mix(in srgb, var(--accent) 55%, #fff); }
+.theme-oscuro .bubble.error { background: #3b1219; border-color: #7f1d1d; color: #fecaca; }
+.theme-oscuro .chip { background: transparent; color: color-mix(in srgb, var(--accent) 45%, #fff); border-color: color-mix(in srgb, var(--accent) 55%, #374151); }
+.theme-oscuro .chip:hover { background: var(--accent); color: var(--on-accent); }
+.theme-oscuro .field { background: #0b1220; }
+.theme-oscuro .field:focus-within { background: #0b1220; }
+.theme-oscuro .input::placeholder { color: #6b7280; }
+.theme-oscuro .send:disabled { background: #374151; color: #9ca3af; }
+.theme-oscuro .dots i { background: #6b7280; }
+.theme-oscuro .icon-btn:hover { background: #1f2937; }
+.theme-oscuro .teaser-close { background: #1f2937; border-color: #374151; }
+
+/* ---------------------------------------------------------------- Vibrante */
+.theme-vibrante {
+	--radius: 22px;
+	--tint: color-mix(in srgb, var(--accent) 7%, #ffffff);
+}
+.theme-vibrante .header {
+	background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 65%, #000));
+	color: var(--on-accent);
+	border-bottom: 0;
+	padding-top: 18px;
+	padding-bottom: 18px;
+}
+.theme-vibrante .header::before { display: none; }
+.theme-vibrante .titles span { color: var(--on-accent); opacity: .85; }
+.theme-vibrante .icon-btn { color: var(--on-accent); }
+.theme-vibrante .icon-btn:hover { background: rgba(255, 255, 255, .16); }
+.theme-vibrante .icon-btn:focus-visible { outline-color: var(--on-accent); }
+.theme-vibrante .header .avatar {
+	background: rgba(255, 255, 255, .2);
+	box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .45);
+}
+.theme-vibrante .status-dot { border-color: color-mix(in srgb, var(--accent) 80%, #000); }
+.theme-vibrante .log,
+.theme-vibrante .chips { background: var(--tint); }
+.theme-vibrante .assistant .bubble {
+	border: 0;
+	box-shadow: 0 2px 10px -4px rgba(17, 24, 39, .18);
+	border-radius: 20px;
+	border-bottom-left-radius: 6px;
+}
+.theme-vibrante .user .bubble {
+	background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 75%, #000));
+	border-radius: 20px;
+	border-bottom-right-radius: 6px;
+}
+.theme-vibrante .chip { background: var(--bg); border-color: transparent; box-shadow: 0 1px 4px rgba(17, 24, 39, .12); }
+.theme-vibrante .field { background: var(--bg); border-color: color-mix(in srgb, var(--accent) 25%, var(--line)); }
+.theme-vibrante .send { background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 70%, #000)); }
+.theme-vibrante .send:disabled { background: #d1d5db; }
+
+/* Botón tipo píldora con texto (si se configuró una etiqueta). */
+.theme-vibrante .launcher {
+	background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 65%, #000));
+}
+.theme-vibrante .launcher.has-label {
+	width: auto;
+	min-width: 60px;
+	padding: 0 22px 0 18px;
+	border-radius: 999px;
+	display: inline-flex;
+	align-items: center;
+	gap: 10px;
+}
+.theme-vibrante .launcher.has-label .ico {
+	position: static;
+	margin: 0;
+	width: 24px;
+	height: 24px;
+}
+.theme-vibrante .launcher.has-label .ico-close { display: none; }
+.theme-vibrante .launcher.has-label .launcher-label {
+	display: inline;
+	font-size: 15px;
+	font-weight: 650;
+	letter-spacing: .01em;
+	white-space: nowrap;
+}
+/* Abierto: vuelve a ser un círculo con la X. */
+.theme-vibrante.open .launcher.has-label { width: 60px; padding: 0; justify-content: center; }
+.theme-vibrante.open .launcher.has-label .launcher-label,
+.theme-vibrante.open .launcher.has-label .ico-chat { display: none; }
+.theme-vibrante.open .launcher.has-label .ico-close { display: block; width: 22px; height: 22px; opacity: 1; transform: none; }
+
+/* En móvil el chat abierto ocupa toda la pantalla: el botón se oculta en todos los temas. */
+@media (max-width: 520px) {
+	.root.open .launcher,
+	.theme-vibrante.open .launcher.has-label { display: none; }
+	.theme-vibrante .launcher.has-label .launcher-label { font-size: 14px; }
+}

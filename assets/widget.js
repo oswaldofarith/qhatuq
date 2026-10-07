@@ -127,7 +127,8 @@
 	css.href = cfg.cssUrl;
 	shadow.appendChild(css);
 
-	var root = el('div', 'root ' + (cfg.position === 'left' ? 'left' : 'right'));
+	var theme = /^[a-z]+$/.test(cfg.theme || '') ? cfg.theme : 'clasico';
+	var root = el('div', 'root theme-' + theme + ' ' + (cfg.position === 'left' ? 'left' : 'right'));
 	root.style.setProperty('--accent', cfg.color || '#0b5cab');
 	root.style.setProperty('--on-accent', onColor(cfg.color));
 	root.hidden = true; // se muestra cuando cargue la hoja de estilos
@@ -202,6 +203,11 @@
 	launcher.setAttribute('aria-label', 'Abrir chat con ' + cfg.title);
 	launcher.setAttribute('aria-expanded', 'false');
 	launcher.innerHTML = '<span class="ico ico-chat">' + ICONS.chat + '</span><span class="ico ico-close">' + ICONS.close + '</span>';
+	if (cfg.launcherLabel) {
+		// Solo visible en los temas que lo usan (p. ej., Vibrante).
+		launcher.appendChild(el('span', 'launcher-label', cfg.launcherLabel));
+		launcher.classList.add('has-label');
+	}
 
 	var teaser = el('div', 'teaser');
 	teaser.hidden = true;
